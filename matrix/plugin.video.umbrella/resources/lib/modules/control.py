@@ -89,8 +89,7 @@ def setting(id, fallback=None):
 	if settings_dict is None: settings_dict = settings_fallback(id)
 	value = settings_dict.get(id, '')
 	if fallback is None: return value
-	if value == '': return fallback
-	return value
+	return fallback if value == '' else value
 
 def settings_fallback(id):
 	return {id: xbmcaddon.Addon().getSetting(id)}
@@ -108,7 +107,7 @@ def make_settings_dict(): # service runs upon a setting change
 			setting_value = item.text
 			if setting_value is None: setting_value = ''
 			dict_item = {setting_id: setting_value}
-			settings_dict.update(dict_item)
+			settings_dict |= dict_item
 		homeWindow.setProperty('umbrella_settings', jsdumps(settings_dict))
 		refresh_playAction()
 		refresh_libPath()
@@ -118,7 +117,7 @@ def make_settings_dict(): # service runs upon a setting change
 def openSettings(query=None, id=addonInfo('id')):
 	try:
 		hide()
-		execute('Addon.OpenSettings(%s)' % id)
+		execute(f'Addon.OpenSettings({id})')
 		if not query: return
 		c, f = query.split('.')
 		execute('SetFocus(%i)' % (int(c) - 100))
@@ -154,13 +153,13 @@ def addonName():
 def addonPath(addon):
 	try: addonID = xbmcaddon.Addon(addon)
 	except: addonID = None
-	if addonID is None: return ''
-	else:
-		try: return transPath(addonID.getAddonInfo('path').decode('utf-8'))
-		except: return transPath(addonID.getAddonInfo('path'))
+	if addonID is None:
+		if addonID is None: return ''
+	try: return transPath(addonID.getAddonInfo('path').decode('utf-8'))
+	except: return transPath(addonID.getAddonInfo('path'))
 
 def addonInstalled(addon_id):
-	return condVisibility('System.HasAddon(%s)' % addon_id)
+	return condVisibility(f'System.HasAddon({addon_id})')
 
 def artPath():
 	theme = appearance()
@@ -173,44 +172,43 @@ def genrePosterPath():
 	return joinPath(xbmcaddon.Addon('plugin.video.umbrella').getAddonInfo('path'), 'resources', 'artwork', 'genre_media', 'posters')
 
 def appearance():
-	theme = setting('appearance.1').lower()
-	return theme
+	return setting('appearance.1').lower()
 
 def addonIcon():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'icon.png')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'icon.png')
 	return addonInfo('icon')
 
 def addonThumb():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'poster.png')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'poster.png')
 	elif theme == '-': return 'DefaultFolder.png'
 	return addonInfo('icon')
 
 def addonPoster():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'poster.png')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'poster.png')
 	return 'DefaultVideo.png'
 
 def addonFanart():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'fanart.jpg')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'fanart.jpg')
 	return addonInfo('fanart')
 
 def addonBanner():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'banner.png')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'banner.png')
 	return 'DefaultVideo.png'
 
 def addonNext():
 	theme = appearance()
 	art = artPath()
-	if not (art is None and theme in ('-', '')): return joinPath(art, 'next.png')
+	if art is not None or theme not in ('-', ''): return joinPath(art, 'next.png')
 	return 'DefaultVideo.png'
 
 ####################################################
@@ -218,10 +216,8 @@ def addonNext():
 ####################################################
 def notification(title=None, message=None, icon=None, time=3000, sound=(setting('notification.sound') == 'true')):
 	if title == 'default' or title is None: title = addonName()
-	if isinstance(title, int): heading = lang(title)
-	else: heading = str(title)
-	if isinstance(message, int): body = lang(message)
-	else: body = str(message)
+	heading = lang(title) if isinstance(title, int) else str(title)
+	body = lang(message) if isinstance(message, int) else str(message)
 	if not icon or icon == 'default': icon = addonIcon()
 	elif icon == 'INFO': icon = xbmcgui.NOTIFICATION_INFO
 	elif icon == 'WARNING': icon = xbmcgui.NOTIFICATION_WARNING
@@ -229,11 +225,11 @@ def notification(title=None, message=None, icon=None, time=3000, sound=(setting(
 	return dialog.notification(heading, body, icon, time, sound)
 
 def yesnoDialog(line1, line2, line3, heading=addonInfo('name'), nolabel='', yeslabel=''):
-	message = '%s[CR]%s[CR]%s' % (line1, line2, line3)
+	message = f'{line1}[CR]{line2}[CR]{line3}'
 	return dialog.yesno(heading, message, nolabel, yeslabel)
 
 def yesnocustomDialog(line1, line2, line3, heading=addonInfo('name'), customlabel='', nolabel='', yeslabel=''):
-	message = '%s[CR]%s[CR]%s' % (line1, line2, line3)
+	message = f'{line1}[CR]{line2}[CR]{line3}'
 	return dialog.yesnocustom(heading, message, customlabel, nolabel, yeslabel)
 
 def selectDialog(list, heading=addonInfo('name')):
@@ -241,28 +237,26 @@ def selectDialog(list, heading=addonInfo('name')):
 
 def okDialog(title=None, message=None):
 	if title == 'default' or title is None: title = addonName()
-	if isinstance(title, int): heading = lang(title)
-	else: heading = str(title)
-	if isinstance(message, int): body = lang(message)
-	else: body = str(message)
+	heading = lang(title) if isinstance(title, int) else str(title)
+	body = lang(message) if isinstance(message, int) else str(message)
 	return dialog.ok(heading, body)
 
 def context(items=None, labels=None):
-	if items:
-		labels = [i[0] for i in items]
-		choice = dialog.contextmenu(labels)
-		if choice >= 0: return items[choice][1]()
-		else: return False
-	else: return dialog.contextmenu(labels)
+	if not items:
+		return dialog.contextmenu(labels)
+	labels = [i[0] for i in items]
+	choice = dialog.contextmenu(labels)
+	return items[choice][1]() if choice >= 0 else False
 
 def multiSelect(title=None, items=None, preselect=None):
-    if items:
-        labels = [i for i in items]
-        if preselect == None:
-            return dialog.multiselect(title, labels)
-        else:
-            return dialog.multiselect(title, labels, preselect=preselect)
-    else: return
+	if not items:
+		return
+	labels = list(items)
+	return (
+		dialog.multiselect(title, labels)
+		if preselect is None
+		else dialog.multiselect(title, labels, preselect=preselect)
+	)
 
 ####################################################
 # --- Built-in
@@ -349,15 +343,13 @@ def getColor(n):
 	colorChart = ('blue', 'red', 'yellow', 'deeppink', 'cyan', 'lawngreen', 'gold', 'magenta', 'yellowgreen',
 						'skyblue', 'lime', 'limegreen', 'deepskyblue', 'white', 'whitesmoke', 'nocolor', 'black')
 	if not n: n = '8'
-	color = colorChart[int(n)]
-	return color
+	return colorChart[int(n)]
 
 def getBackgroundColor(n):
 	colorChart = ('FF12A0C7', 'blue', 'red', 'yellow', 'deeppink', 'cyan', 'lawngreen', 'gold', 'magenta', 'yellowgreen',
 						'skyblue', 'lime', 'limegreen', 'deepskyblue', 'white', 'whitesmoke', 'FF000000')
 	if not n: n = '0'
-	color = colorChart[int(n)]
-	return color 
+	return colorChart[int(n)] 
 
 def getHighlightColor():
 	return getColor(setting('highlight.color'))
@@ -370,8 +362,7 @@ def getPlayNextBackgroundColor():
 
 def getMenuEnabled(menu_title):
 	is_enabled = setting(menu_title).strip()
-	if (is_enabled == '' or is_enabled == 'false'): return False
-	return True
+	return is_enabled not in ['', 'false']
 
 def trigger_widget_refresh():
 	# import time
@@ -423,10 +414,15 @@ def jsondate_to_datetime(jsondate_object, resformat, remove_time=False):
 	import time
 	if remove_time:
 		try: datetime_object = datetime.strptime(jsondate_object, resformat).date()
-		except TypeError: datetime_object = datetime(*(time.strptime(jsondate_object, resformat)[0:6])).date()
+		except TypeError:
+			datetime_object = datetime(
+				*time.strptime(jsondate_object, resformat)[:6]
+			).date()
+
 	else:
 		try: datetime_object = datetime.strptime(jsondate_object, resformat)
-		except TypeError: datetime_object = datetime(*(time.strptime(jsondate_object, resformat)[0:6]))
+		except TypeError:
+			datetime_object = datetime(*time.strptime(jsondate_object, resformat)[:6])
 	return datetime_object
 
 def syncAccounts():
@@ -459,5 +455,4 @@ def checkPlayNextEpisodes():
 			nextEpisodeSetting = 0
 		if nextEpisodeSetting != 2:
 			jsonrpc('{"jsonrpc":"2.0", "method":"Settings.SetSettingValue", "params":{"setting":"videoplayer.autoplaynextitem", "value":[2]}, "id":1}')
-	else:pass
 

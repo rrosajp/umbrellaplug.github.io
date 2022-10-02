@@ -11,7 +11,7 @@ except ImportError: #Py3
 # import tmdb as idlookup
 
 def get_infolabel(infolabel):
-	return xbmc.getInfoLabel(u'ListItem.{}'.format(infolabel))
+	return xbmc.getInfoLabel(f'ListItem.{infolabel}')
 
 
 if __name__ == '__main__':
@@ -47,6 +47,6 @@ if __name__ == '__main__':
 		traceback.print_exc()
 
 	plugin = 'plugin://plugin.video.umbrella/'
-	path = 'PlayMedia(%s?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s&rescrape=true)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+	path = f'PlayMedia({plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}&rescrape=true)'
+
 	xbmc.executebuiltin(path)

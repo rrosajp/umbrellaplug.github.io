@@ -32,27 +32,27 @@ def get(function, duration, *args):
 
 		fresh_result = repr(function(*args)) # may need a try-except block for server timeouts
 
-		if cache_result and (result and len(result) == 1) and fresh_result == '[]': # fix for syncSeason mark unwatched season when it's the last item remaining
-			if result[0].isdigit():
-				remove(function, *args)
-				return []
+		if (
+			cache_result
+			and (result and len(result) == 1)
+			and fresh_result == '[]'
+			and result[0].isdigit()
+		):
+			remove(function, *args)
+			return []
 
 		invalid = False
 		try: # Sometimes None is returned as a string instead of None type for "fresh_result"
-			if not fresh_result: invalid = True
-			elif fresh_result == 'None' or fresh_result == '' or fresh_result == '[]' or fresh_result == '{}': invalid = True
-			elif len(fresh_result) == 0: invalid = True
+			if not fresh_result or fresh_result in {'None', '', '[]', '{}'}: invalid = True
 		except: pass
 
-		if invalid: # If the cache is old, but we didn't get "fresh_result", return the old cache
-			if cache_result: return result
-			else: return None # do not cache_insert() None type, sometimes servers just down momentarily
-		else:
-			if '404:NOT FOUND' in fresh_result:
-				cache_insert(key, None) # cache_insert() "404:NOT FOUND" cases only as None type
-				return None
-			else: cache_insert(key, fresh_result)
-			return literal_eval(fresh_result)
+		if invalid:
+			return result if cache_result else None
+		if '404:NOT FOUND' in fresh_result:
+			cache_insert(key, None) # cache_insert() "404:NOT FOUND" cases only as None type
+			return None
+		else: cache_insert(key, fresh_result)
+		return literal_eval(fresh_result)
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -75,9 +75,10 @@ def timeout(function, *args):
 
 def cache_existing(function, *args):
 	try:
-		cache_result = cache_get(_hash_function(function, args))
-		if cache_result: return literal_eval(cache_result['value'])
-		else: return None
+		if cache_result := cache_get(_hash_function(function, args)):
+			if cache_result: return literal_eval(cache_result['value'])
+		else:
+			return None
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -88,9 +89,12 @@ def cache_get(key):
 		dbcon = get_connection()
 		dbcur = get_connection_cursor(dbcon)
 		ck_table = dbcur.execute('''SELECT * FROM sqlite_master WHERE type='table' AND name='cache';''').fetchone()
-		if not ck_table: return None
-		results = dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
-		return results
+		return (
+			dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
+			if ck_table
+			else None
+		)
+
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -115,8 +119,7 @@ def cache_insert(key, value):
 def remove(function, *args):
 	try:
 		key = _hash_function(function, args)
-		key_exists = cache_get(key)
-		if key_exists:
+		if key_exists := cache_get(key):
 			dbcon = get_connection()
 			dbcur = get_connection_cursor(dbcon)
 			dbcur.execute('''DELETE FROM cache WHERE key=?''', (key,))
@@ -148,12 +151,11 @@ def cache_clear(flush_only=False):
 			dbcur.execute('''DELETE FROM cache''')
 			dbcur.connection.commit() # added this for what looks like a 19 bug not found in 18, normal commit is at end
 			dbcur.execute('''VACUUM''')
-			cleared = True
 		else:
 			dbcur.execute('''DROP TABLE IF EXISTS cache''')
 			dbcur.execute('''VACUUM''')
 			dbcur.connection.commit()
-			cleared = True
+		cleared = True
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -174,13 +176,10 @@ def get_connection():
 	return dbcon
 
 def get_connection_cursor(dbcon):
-	dbcur = dbcon.cursor()
-	return dbcur
+	return dbcon.cursor()
 
 def _dict_factory(cursor, row):
-	d = {}
-	for idx, col in enumerate(cursor.description): d[col[0]] = row[idx]
-	return d
+	return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 ##################
 def cache_clear_search():
@@ -188,12 +187,12 @@ def cache_clear_search():
 	try:
 		dbcon = get_connection_search()
 		dbcur = dbcon.cursor()
+		cleared = True
 		for t in ('movies', 'tvshow', 'collections', 'furk', 'easynews'):
-			dbcur.execute('''DROP TABLE IF EXISTS {}'''.format(t))
+			dbcur.execute(f'''DROP TABLE IF EXISTS {t}''')
 			dbcur.execute('''VACUUM''')
 			dbcur.connection.commit()
 			control.refresh()
-			cleared = True
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -207,7 +206,7 @@ def cache_clear_SearchPhrase(table, key):
 	try:
 		dbcon = get_connection_search()
 		dbcur = dbcon.cursor()
-		dbcur.execute('''DELETE FROM {} WHERE term=?;'''.format(table), (key,))
+		dbcur.execute(f'''DELETE FROM {table} WHERE term=?;''', (key,))
 		dbcur.connection.commit()
 		control.refresh()
 		cleared = True
@@ -231,7 +230,7 @@ def cache_clear_thumbnails():
 	databasePath  = xbmcvfs.translatePath('special://profile/Database/')
 	addonPath = xbmcvfs.translatePath('special://home/addons')
 	try:
-		dbcon = sqlite3.connect(databasePath+'/Textures13.db')
+		dbcon = sqlite3.connect(f'{databasePath}/Textures13.db')
 		dbcur = dbcon.cursor()
 		icon = dbcur.execute("SELECT cachedurl FROM texture WHERE url ='" + addonPath + "/plugin.video.umbrella/icon.png';").fetchone()
 		fanart = dbcur.execute("SELECT cachedurl FROM texture WHERE url ='" + addonPath + "/plugin.video.umbrella/fanart.jpg';").fetchone()
@@ -280,7 +279,11 @@ def cache_clear_bookmark(name, year='0'):
 		# idFile = str(idFile.hexdigest())
 		# dbcur.execute("DELETE FROM bookmark WHERE idFile = '%s'" % idFile)
 		years = [str(year), str(int(year)+1), str(int(year)-1)]
-		dbcur.execute('''DELETE FROM bookmark WHERE Name="%s" AND year IN (%s)''' % (name, ','.join(i for i in years)))
+		dbcur.execute(
+			'''DELETE FROM bookmark WHERE Name="%s" AND year IN (%s)'''
+			% (name, ','.join(years))
+		)
+
 		dbcur.connection.commit()
 		control.refresh()
 		control.trigger_widget_refresh()
@@ -306,7 +309,10 @@ def clear_local_bookmarks(): # clear all umbrella bookmarks from kodi database
 		dbcur.execute('''SELECT * FROM files WHERE strFilename LIKE "%plugin.video.umbrella%"''')
 		file_ids = [str(i[0]) for i in dbcur.fetchall()]
 		for table in ('bookmark', 'streamdetails', 'files'):
-			dbcur.execute('''DELETE FROM {} WHERE idFile IN ({})'''.format(table, ','.join(file_ids)))
+			dbcur.execute(
+				f'''DELETE FROM {table} WHERE idFile IN ({','.join(file_ids)})'''
+			)
+
 		dbcur.connection.commit()
 	except:
 		from resources.lib.modules import log_utils
@@ -318,11 +324,14 @@ def clear_local_bookmark(url): # clear all item specific bookmarks from kodi dat
 	try:
 		dbcon = db.connect(get_video_database_path())
 		dbcur = dbcon.cursor()
-		dbcur.execute('''SELECT * FROM files WHERE strFilename LIKE "%{}%"'''.format(url))
+		dbcur.execute(f'''SELECT * FROM files WHERE strFilename LIKE "%{url}%"''')
 		file_ids = [str(i[0]) for i in dbcur.fetchall()]
 		if not file_ids: return
 		for table in ('bookmark', 'streamdetails', 'files'):
-			dbcur.execute('''DELETE FROM {} WHERE idFile IN ({})'''.format(table, ','.join(file_ids)))
+			dbcur.execute(
+				f'''DELETE FROM {table} WHERE idFile IN ({','.join(file_ids)})'''
+			)
+
 		dbcur.connection.commit()
 	except:
 		from resources.lib.modules import log_utils

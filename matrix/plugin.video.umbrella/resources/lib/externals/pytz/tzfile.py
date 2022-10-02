@@ -28,7 +28,7 @@ def build_tzinfo(zone, fp):
         typecnt, charcnt) = unpack(head_fmt, fp.read(head_size))
 
     # Make sure it is a tzfile(5) file
-    assert magic == _byte_string('TZif'), 'Got magic %s' % repr(magic)
+    assert magic == _byte_string('TZif'), f'Got magic {repr(magic)}'
 
     # Read out the transition times, localtime indices and ttinfo structures.
     data_fmt = '>%(timecnt)dl %(timecnt)dB %(ttinfo)s %(charcnt)ds' % dict(
@@ -48,8 +48,7 @@ def build_tzinfo(zone, fp):
     # Process ttinfo into separate structs
     ttinfo = []
     tznames = {}
-    i = 0
-    while i < len(ttinfo_raw):
+    for i in range(0, len(ttinfo_raw), 3):
         # have we looked up this timezone name yet?
         tzname_offset = ttinfo_raw[i + 2]
         if tzname_offset not in tznames:
@@ -61,10 +60,8 @@ def build_tzinfo(zone, fp):
         ttinfo.append((ttinfo_raw[i],
                        bool(ttinfo_raw[i + 1]),
                        tznames[tzname_offset]))
-        i += 3
-
     # Now build the timezone object
-    if len(ttinfo) == 1 or len(transitions) == 0:
+    if len(ttinfo) == 1 or not transitions:
         ttinfo[0][0], ttinfo[0][2]
         cls = type(zone, (StaticTzInfo,), dict(
             zone=zone,

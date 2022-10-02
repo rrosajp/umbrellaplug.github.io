@@ -32,7 +32,7 @@ def status():
 
 def get_priority(cls):
 	try:
-		return int(getSetting((cls.__class__.__name__ + '.priority').lower()))
+		return int(getSetting(f'{cls.__class__.__name__}.priority'.lower()))
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()

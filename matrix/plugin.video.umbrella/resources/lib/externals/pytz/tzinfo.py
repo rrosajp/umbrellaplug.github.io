@@ -335,7 +335,7 @@ class DstTzInfo(BaseTzInfo):
         # If there are no possibly correct timezones, we are attempting
         # to convert a time that never happened - the time period jumped
         # during the start-of-DST transition period.
-        if len(possible_loc_dt) == 0:
+        if not possible_loc_dt:
             # If we refuse to guess, raise an exception.
             if is_dst is None:
                 raise NonExistentTimeError(dt)
@@ -372,7 +372,7 @@ class DstTzInfo(BaseTzInfo):
         if len(filtered_possible_loc_dt) == 1:
             return filtered_possible_loc_dt[0]
 
-        if len(filtered_possible_loc_dt) == 0:
+        if not filtered_possible_loc_dt:
             filtered_possible_loc_dt = list(possible_loc_dt)
 
         # If we get this far, we have in a wierd timezone transition
@@ -502,10 +502,7 @@ class DstTzInfo(BaseTzInfo):
             return self._tzname
 
     def __repr__(self):
-        if self._dst:
-            dst = 'DST'
-        else:
-            dst = 'STD'
+        dst = 'DST' if self._dst else 'STD'
         if self._utcoffset > _notime:
             return '<DstTzInfo %r %s+%s %s>' % (
                 self.zone, self._tzname, self._utcoffset, dst

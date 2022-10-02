@@ -37,14 +37,22 @@ class FanartTv:
 			elif result.status_code == 404:
 				if getSetting('debug.level') == '1':
 					from resources.lib.modules import log_utils
-					log_utils.log('FANART.TV get_request() failed: (404:NOT FOUND) - URL: %s' % url, level=log_utils.LOGDEBUG)
+					log_utils.log(
+						f'FANART.TV get_request() failed: (404:NOT FOUND) - URL: {url}',
+						level=log_utils.LOGDEBUG,
+					)
+
 				return '404:NOT FOUND'
 			else:
 				if getSetting('debug.level') == '1':
 					from resources.lib.modules import log_utils
 					from resources.lib.modules.client import parseDOM
 					title = parseDOM(result.text, 'title')[0]
-					log_utils.log('FANART.TV get_request() failed - URL: %s (%s)' % (url, title), level=log_utils.LOGDEBUG)
+					log_utils.log(
+						f'FANART.TV get_request() failed - URL: {url} ({title})',
+						level=log_utils.LOGDEBUG,
+					)
+
 				return None
 		except:
 			from resources.lib.modules import log_utils
@@ -57,9 +65,11 @@ class FanartTv:
 		try:
 			ret_img = [(x['url'], x['likes']) for x in img if x.get('lang') == self.lang]
 			if len(ret_img) >1: ret_img = sorted(ret_img, key=lambda x: int(x[1]), reverse=True)
-			elif len(ret_img) == 1: pass
-			else:
-				ret_img = [(x['url'], x['likes']) for x in img if any(value == x.get('lang') for value in ('en', '00', ''))]
+			elif len(ret_img) != 1:
+				ret_img = [
+					(x['url'], x['likes']) for x in img if x.get('lang') in ('en', '00', '')
+				]
+
 				if len(ret_img) >1: ret_img = sorted(ret_img, key=lambda x: int(x[1]), reverse=True)
 			if not ret_img: return None
 			ret_img = [x[0] for x in ret_img][0]
@@ -73,8 +83,8 @@ class FanartTv:
 		try:
 			if not imdb and not tmdb: return None
 			art = self.get_request(base_url % ('movies', tmdb))
-			if art is None or '404:NOT FOUND' in art:
-				if imdb: art = self.get_request(base_url % ('movies', imdb))
+			if (art is None or '404:NOT FOUND' in art) and imdb:
+				art = self.get_request(base_url % ('movies', imdb))
 			if art is None: return None
 			elif '404:NOT FOUND' in art: return art
 			try:
@@ -83,9 +93,9 @@ class FanartTv:
 			except: poster2 = ''
 			try:
 				if 'moviebackground' in art: fanart2 = art['moviebackground']
-				else:
-					if 'moviethumb' not in art: raise Exception()
+				elif 'moviethumb' in art:
 					fanart2 = art['moviethumb']
+				else: raise Exception()
 				fanart2 = self.parse_art(fanart2)
 			except: fanart2 = ''
 			try:
@@ -94,16 +104,16 @@ class FanartTv:
 			except: banner2 = ''
 			try:
 				if 'hdmovielogo' in art: clearlogo = art['hdmovielogo']
-				else:
-					if 'movielogo' not in art: raise Exception()
+				elif 'movielogo' in art:
 					clearlogo = art['movielogo']
+				else: raise Exception()
 				clearlogo = self.parse_art(clearlogo)
 			except: clearlogo = ''
 			try:
 				if 'hdmovieclearart' in art: clearart = art['hdmovieclearart']
-				else:
-					if 'movieart' not in art: raise Exception()
+				elif 'movieart' in art:
 					clearart = art['movieart']
+				else: raise Exception()
 				clearart = self.parse_art(clearart)
 			except: clearart = ''
 			try:
@@ -112,19 +122,34 @@ class FanartTv:
 			except: discart = ''
 			try:
 				if 'moviethumb' in art: landscape = art['moviethumb']
-				else:
-					if 'moviebackground' not in art: raise Exception()
+				elif 'moviebackground' in art:
 					landscape = art['moviebackground']
+				else: raise Exception()
 				landscape = self.parse_art(landscape)
 			except: landscape = ''
 			try:
 				keyart = art['movieposter']
-				keyart = [(x['url'], x['likes']) for x in keyart if any(value == x.get('lang') for value in ('00', 'None', None))]
+				keyart = [
+					(x['url'], x['likes'])
+					for x in keyart
+					if x.get('lang') in ('00', 'None', None)
+				]
+
 				if len(keyart) >1:keyart = sorted(keyart, key=lambda x: int(x[1]), reverse=True)
 				keyart = [x[0] for x in keyart][0]
 			except: keyart = ''
-			extended_art = {'extended': True, 'poster2': poster2, 'fanart2': fanart2, 'banner2': banner2, 'clearlogo': clearlogo, 'clearart': clearart, 'discart': discart, 'landscape': landscape, 'keyart': keyart}
-			return extended_art
+			return {
+				'extended': True,
+				'poster2': poster2,
+				'fanart2': fanart2,
+				'banner2': banner2,
+				'clearlogo': clearlogo,
+				'clearart': clearart,
+				'discart': discart,
+				'landscape': landscape,
+				'keyart': keyart,
+			}
+
 		except:
 			from resources.lib.modules import log_utils
 			log_utils.error()
@@ -152,16 +177,16 @@ class FanartTv:
 		except: banner2 = ''
 		try:
 			if 'hdtvlogo' in art: clearlogo = art['hdtvlogo']
-			else:
-				if 'clearlogo' not in art: raise Exception()
+			elif 'clearlogo' in art:
 				clearlogo = art['clearlogo']
+			else: raise Exception()
 			clearlogo = self.parse_art(clearlogo)
 		except: clearlogo = ''
 		try:
 			if 'hdclearart' in art: clearart = art['hdclearart']
-			else:
-				if 'clearart' not in art: raise Exception()
+			elif 'clearart' in art:
 				clearart = art['clearart']
+			else: raise Exception()
 			clearart = self.parse_art(clearart)
 		except: clearart = ''
 		try:
@@ -171,8 +196,16 @@ class FanartTv:
 				landscape = art['showbackground']
 			landscape = self.parse_art(landscape)
 		except: landscape = ''
-		extended_art = {'extended': True, 'poster2': poster2, 'banner2': banner2, 'fanart2': fanart2, 'clearlogo': clearlogo, 'clearart': clearart, 'landscape': landscape, 'season_posters': season_posters}
-		return extended_art
+		return {
+			'extended': True,
+			'poster2': poster2,
+			'banner2': banner2,
+			'fanart2': fanart2,
+			'clearlogo': clearlogo,
+			'clearart': clearart,
+			'landscape': landscape,
+			'season_posters': season_posters,
+		}
 
 	def get_season_poster(self, tvdb, season):
 		if not tvdb or not season: return None
@@ -180,11 +213,9 @@ class FanartTv:
 			from resources.lib.database import fanarttv_cache
 			extended_art = fanarttv_cache.get(self.get_tvshow_art, 336, tvdb)
 			if not extended_art: return None
-			season_posters = extended_art.get('season_posters', {})
-			if season_posters:
+			if season_posters := extended_art.get('season_posters', {}):
 				season_posters = [i for i in season_posters if i.get('season') == str(season)]
-				season_poster = self.parse_art(season_posters)
-				return season_poster
+				return self.parse_art(season_posters)
 		except:
 			from resources.lib.modules import log_utils
 			log_utils.error()

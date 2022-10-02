@@ -16,7 +16,7 @@ if __name__ == '__main__':
 	params = dict(parse_qsl(args[1].replace('?', '')))
 
 	year = params.get('year')
-	name = params.get('title') + ' (%s)' % year
+	name = params.get('title') + f' ({year})'
 
 	if 'tvshowtitle' in params:
 		season = params.get('season', '')
@@ -24,10 +24,12 @@ if __name__ == '__main__':
 		name = params.get('tvshowtitle') + ' S%02dE%02d' % (int(season), int(episode))
 	sysname = quote_plus(name)
 
-	umbrella_path = 'RunPlugin(%s?action=cache_clearBookmark&name=%s&year=%s&opensettings=false)' % (plugin, sysname, year)
+	umbrella_path = f'RunPlugin({plugin}?action=cache_clearBookmark&name={sysname}&year={year}&opensettings=false)'
+
 	xbmc.executebuiltin(umbrella_path)
 
 	path = path.split('&meta=')[0]
-	kodi_path = 'RunPlugin(%s?action=cache_clearKodiBookmark&url=%s)' % (plugin, quote_plus(path))
+	kodi_path = f'RunPlugin({plugin}?action=cache_clearKodiBookmark&url={quote_plus(path)})'
+
 	xbmc.executebuiltin(kodi_path)
 	xbmc.executebuiltin('UpdateLibrary(video,special://skin/foo)')

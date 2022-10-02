@@ -18,19 +18,20 @@ def set_reuselanguageinvoker():
 			new_value = 'true' if current_value == 'false' else 'false'
 			if not control.yesnoDialog(control.lang(33018) % (current_value, new_value), '', ''):
 				return control.openSettings(query='13.6')
-			if new_value == 'true':
-				if not control.yesnoDialog(control.lang(33019), '', ''): return
+			if new_value == 'true' and not control.yesnoDialog(
+				control.lang(33019), '', ''
+			):
+				return
 			item.text = new_value
 			hash_start = gen_file_hash(addon_xml)
 			tree.write(addon_xml)
 			hash_end = gen_file_hash(addon_xml)
-			if hash_start != hash_end:
-				control.setSetting('reuse.languageinvoker', new_value)
-				control.okDialog(message='%s\n%s' % (control.lang(33017) % new_value, control.lang(33020)))
-			else:
+			if hash_start == hash_end:
 				return control.okDialog(message=33021)
+			control.setSetting('reuse.languageinvoker', new_value)
+			control.okDialog(message='%s\n%s' % (control.lang(33017) % new_value, control.lang(33020)))
 			current_profile = control.infoLabel('system.profilename')
-			control.execute('LoadProfile(%s)' % current_profile)
+			control.execute(f'LoadProfile({current_profile})')
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()

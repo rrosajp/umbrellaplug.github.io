@@ -58,10 +58,10 @@ class lib_tools:
 
 	@staticmethod
 	def nfo_url(media_string, ids):
-		tvdb_url = 'https://thetvdb.com/?tab=series&id=%s'
 		imdb_url = 'https://www.imdb.com/title/%s/'
 		tmdb_url = 'https://www.themoviedb.org/%s/%s'
-		if 'tvdb' in ids: return tvdb_url % (str(ids['tvdb']))
+		if 'tvdb' in ids:
+			return f"https://thetvdb.com/?tab=series&id={str(ids['tvdb'])}"
 		elif 'imdb' in ids: return imdb_url % (str(ids['imdb']))
 		elif 'tmdb' in ids: return tmdb_url % (media_string, str(ids['tmdb']))
 		else: return ''
@@ -85,9 +85,10 @@ class lib_tools:
 		try:
 			foldername = title.strip().replace("'", '').replace('&', 'and')
 			foldername = re.sub(r'[^\w\-_\. ]', '_', foldername)
-			foldername = '%s (%s)' % (foldername, year) if year else foldername
+			foldername = f'{foldername} ({year})' if year else foldername
 			path = control.joinPath(base_path, foldername)
-			if season: path = control.joinPath(path, 'Season %s' % season)
+			if season:
+				path = control.joinPath(path, f'Season {season}')
 			return path
 		except: log_utils.error()
 
@@ -113,12 +114,10 @@ class lib_tools:
 				paths = []
 				movie_LibraryFolder = control.joinPath(control.transPath(control.setting('library.movie')), '')
 				special_movie_LibraryFolder = control.joinPath(control.setting('library.movie'), '')
-				paths.append(movie_LibraryFolder)
-				paths.append(special_movie_LibraryFolder)
+				paths.extend((movie_LibraryFolder, special_movie_LibraryFolder))
 				tvShows_LibraryFolder = control.joinPath(control.transPath(control.setting('library.tv')),'')
 				speical_tvShows_LibraryFolder = control.joinPath(control.setting('library.tv'),'')
-				paths.append(tvShows_LibraryFolder)
-				paths.append(speical_tvShows_LibraryFolder)
+				paths.extend((tvShows_LibraryFolder, speical_tvShows_LibraryFolder))
 			paths = [i.rstrip('/').rstrip('\\') for i in paths]
 			result = control.jsonrpc('{"jsonrpc": "2.0", "method": "Files.GetSources", "params": {"media" : "video"}, "id": 1}')
 			result = jsloads(result)['result']['sources']
@@ -152,7 +151,7 @@ class lib_tools:
 		return contains
 
 	def service(self):
-		self.property = '%s_service_property' % control.addonInfo('name').lower()
+		self.property = f"{control.addonInfo('name').lower()}_service_property"
 		try:
 			lib_tools.create_folder(control.joinPath(control.transPath(control.setting('library.movie')), ''))
 			lib_tools.create_folder(control.joinPath(control.transPath(control.setting('library.tv')), ''))
@@ -163,12 +162,14 @@ class lib_tools:
 			dbcur = dbcon.cursor()
 			dbcur.execute('''CREATE TABLE IF NOT EXISTS service (setting TEXT, value TEXT, UNIQUE(setting));''')
 			dbcur.connection.commit()
-			fetch = dbcur.execute('''SELECT * FROM service WHERE setting="last_run"''').fetchone()
-			if not fetch:
+			if fetch := dbcur.execute(
+				'''SELECT * FROM service WHERE setting="last_run"'''
+			).fetchone():
+				last_service = str(fetch[1])
+			else:
 				last_service = "1970-01-01 23:59:00.000000"
 				dbcur.execute('''INSERT INTO service Values (?, ?)''', ('last_run', last_service))
 				dbcur.connection.commit()
-			else: last_service = str(fetch[1])
 		except: log_utils.error()
 		finally:
 			dbcur.close() ; dbcon.close()
@@ -236,13 +237,10 @@ class lib_tools:
 
 	def clearListfromDB(self, listId):
 		try:
-			if 'watchlist' in str(listId):
-				listId = listId
-			else:
-				listId = 'list'+str(listId)
+			listId = listId if 'watchlist' in str(listId) else f'list{str(listId)}'
 			dbcon = database.connect(control.libcacheFile)
 			dbcur = dbcon.cursor()
-			query = '''DROP TABLE IF EXISTS %s;''' % listId
+			query = f'''DROP TABLE IF EXISTS {listId};'''
 			dbcur.execute(query)
 			dbcur.connection.commit()
 			control.notification(message=40225)
@@ -279,7 +277,7 @@ class lib_tools:
 			if fromSettings == True:
 				control.openSettings('9.2', 'plugin.video.umbrella')
 			self.updateLists(selected_items, allTraktItems)
-				
+
 		except:
 			from resources.lib.modules import log_utils
 			log_utils.error()
@@ -314,9 +312,7 @@ class lib_tools:
 			from resources.lib.modules import log_utils
 			log_utils.error()
 		try:
-			results = dbcur.execute('''SELECT * FROM lists;''').fetchall()
-			if not results:
-				results = []
+			results = dbcur.execute('''SELECT * FROM lists;''').fetchall() or []
 		except: 
 			from resources.lib.modules import log_utils
 			log_utils.error()
@@ -347,7 +343,6 @@ class lib_tools:
 			from resources.lib.menus import tvshows
 			wltv_items = tvshows.TVshows().traktWatchlist('https://api.trakt.tv/users/me/watchlist/shows', create_directory=None)
 			wltv_items_count = len(wltv_items)
-			wltv_item = {'name': 'Watchlist (TV Shows)', 'url': 'https://api.trakt.tv/users/me/watchlist/shows', 'list_owner': 'me', 'list_owner_slug': 'me', 'list_name': 'Watchlist (TV Shows)', 'list_id': 'watchlistTVshows', 'context':'https://api.trakt.tv/users/me/watchlist/shows', 'next': '', 'list_count': wltv_items_count, 'image': 'trakt.png', 'icon': 'DefaultVideoPlaylists.png', 'action': 'tvshows'}
 			tv_items = tvshows.TVshows().trakt_user_lists('trakt_list', trakt_user)
 			ltv_items = tvshows.TVshows().traktLlikedlists(create_directory=None)
 			from resources.lib.menus import movies
@@ -355,25 +350,22 @@ class lib_tools:
 			lmovie_items = movies.Movies().traktLlikedlists(create_directory=None)
 			wlm_items = movies.Movies().traktWatchlist('https://api.trakt.tv/users/me/watchlist/movies', create_directory=None)
 			wlm_items_count = len(wlm_items)
-			wlm_item = {'name': 'Watchlist (Movies)', 'url': 'https://api.trakt.tv/users/me/watchlist/movies', 'list_owner': 'me', 'list_owner_slug': 'me', 'list_name': 'Watchlist (Movies)', 'list_id': 'watchlistMovie', 'context': 'https://api.trakt.tv/users/me/watchlist/movies', 'next': '', 'list_count': wlm_items_count, 'image': 'trakt.png', 'icon': 'DefaultVideoPlaylists.png', 'action': 'movies'}
 			if wlm_items_count > 0:
+				wlm_item = {'name': 'Watchlist (Movies)', 'url': 'https://api.trakt.tv/users/me/watchlist/movies', 'list_owner': 'me', 'list_owner_slug': 'me', 'list_name': 'Watchlist (Movies)', 'list_id': 'watchlistMovie', 'context': 'https://api.trakt.tv/users/me/watchlist/movies', 'next': '', 'list_count': wlm_items_count, 'image': 'trakt.png', 'icon': 'DefaultVideoPlaylists.png', 'action': 'movies'}
 				full_list.append(wlm_item)
 			if wltv_items_count > 0:
+				wltv_item = {'name': 'Watchlist (TV Shows)', 'url': 'https://api.trakt.tv/users/me/watchlist/shows', 'list_owner': 'me', 'list_owner_slug': 'me', 'list_name': 'Watchlist (TV Shows)', 'list_id': 'watchlistTVshows', 'context':'https://api.trakt.tv/users/me/watchlist/shows', 'next': '', 'list_count': wltv_items_count, 'image': 'trakt.png', 'icon': 'DefaultVideoPlaylists.png', 'action': 'tvshows'}
 				full_list.append(wltv_item)
-			for x in tv_items:
-				full_list.append(x)
-			for x in ltv_items:
-				full_list.append(x)
-			for x in movie_items:
-				full_list.append(x)
-			for x in lmovie_items:
-				full_list.append(x)
+			full_list.extend(iter(tv_items))
+			full_list.extend(iter(ltv_items))
+			full_list.extend(iter(movie_items))
+			full_list.extend(iter(lmovie_items))
 		except:
 			full_list = []
 		return full_list
 
 	def updateLists(self, items, allItems):
-		if items == None: return
+		if items is None: return
 		length = len(allItems)
 		itemLength = len(items)
 		for j in range(length):
@@ -438,10 +430,7 @@ class libmovies:
 		try:
 			results = dbcur.execute('''SELECT * FROM lists WHERE type="movies" OR type="mixed";''').fetchall()
 			if not results: 
-				if service_notification and general_notification:
-					return #control.notification(message=32113)
-				else:
-					return
+				return #control.notification(message=32113)
 		except: log_utils.error()
 		finally:
 			dbcur.close() ; dbcon.close()
@@ -473,17 +462,29 @@ class libmovies:
 			except: log_utils.error()
 			if not items: continue
 			if service_notification and not control.condVisibility('Window.IsVisible(infodialog)') and not control.condVisibility('Player.HasVideo'):
-				control.notification(title='Updating from list: ' + list_name + ' - ' + type, message=32552)
+				control.notification(
+					title=f'Updating from list: {list_name} - {type}', message=32552
+				)
+
 			for i in items:
 				if control.monitor.abortRequested(): return sysexit()
 				try:
 					content = i['mediatype']
 				except:
 					content = None
-				if content == 'movies' or content == None:
+				if content == 'movies' or content is None:
 					try:
-						files_added = self.add('%s (%s)' % (i['title'], i['year']), i['title'], i['year'], i['imdb'], i['tmdb'], range=True)
-						if general_notification and files_added > 0: control.notification(title='%s (%s)' % (i['title'], i['year']), message=32554)
+						files_added = self.add(
+							f"{i['title']} ({i['year']})",
+							i['title'],
+							i['year'],
+							i['imdb'],
+							i['tmdb'],
+							range=True,
+						)
+
+						if general_notification and files_added > 0:
+							control.notification(title=f"{i['title']} ({i['year']})", message=32554)
 						if files_added > 0: total_added += 1
 					except: log_utils.error()
 				elif content == 'tvshows':
@@ -505,25 +506,23 @@ class libmovies:
 			control.makeFile(control.dataPath)
 			dbcon = database.connect(control.libcacheFile)
 			dbcur = dbcon.cursor()
-			if 'watchlist' not in url:
-				try:
+			try:
+				if 'watchlist' not in url:
 					listId = url.split('/items')[0]
 					listId = listId.split('/lists/')[1]
 					listId = re.sub('[^A-Za-z0-9]+', '', listId)
-					listId = 'list'+listId
-				except:
-					listId = ''
-			else:
-				try:
+					listId = f'list{listId}'
+				else:
 					url = url.split('/watchlist/')[1]
-					if url == 'shows':
-						listId = 'watchlistTVshows'
 					if url == 'movies':
 						listId = 'watchlistMovie'
-				except:
-					listId = ''
-			if listId == '': return control.notification(message=33586)
-			query = '''CREATE TABLE IF NOT EXISTS %s (item_title TEXT, tmdb TEXT, imdb TEXT, last_import DATE, UNIQUE(imdb));''' % listId
+					elif url == 'shows':
+						listId = 'watchlistTVshows'
+			except:
+				listId = ''
+			if not listId: return control.notification(message=33586)
+			query = f'''CREATE TABLE IF NOT EXISTS {listId} (item_title TEXT, tmdb TEXT, imdb TEXT, last_import DATE, UNIQUE(imdb));'''
+
 			dbcur.execute(query)
 			dbcur.connection.commit()
 		except: 
@@ -533,17 +532,8 @@ class libmovies:
 			control.makeFile(control.dataPath)
 			dbcon = database.connect(control.libcacheFile)
 			dbcur = dbcon.cursor()
-			query2 = '''SELECT * FROM %s;''' % listId
-			results = dbcur.execute(query2).fetchall()
-			if not results: #need to build a table here for the list none exists.
-				length = len(items)
-				for i in range(length):
-					dateImported = datetime.now()
-					query = '''INSERT OR REPLACE INTO %s Values ("%s", "%s", "%s", "%s")''' % (listId, items[i].get('title'), items[i].get('tmdb'), items[i].get('imdb'), dateImported)
-					dbcur.execute(query)
-				dbcur.connection.commit()
-				return items
-			else:
+			query2 = f'''SELECT * FROM {listId};'''
+			if results := dbcur.execute(query2).fetchall():
 				#go through the items in database and compare to list now.
 				backitems = items.copy()
 				length = len(items)
@@ -559,9 +549,10 @@ class libmovies:
 								backitems.remove(items[i])
 				if len(backitems) > 0:
 					dateImported = datetime.now()
-					query3 = '''DROP TABLE IF EXISTS %s;''' % listId
+					query3 = f'''DROP TABLE IF EXISTS {listId};'''
 					dbcur.execute(query3)
-					query4 = '''CREATE TABLE IF NOT EXISTS %s (item_title TEXT, tmdb TEXT, imdb TEXT, last_import DATE, UNIQUE(imdb));''' % listId
+					query4 = f'''CREATE TABLE IF NOT EXISTS {listId} (item_title TEXT, tmdb TEXT, imdb TEXT, last_import DATE, UNIQUE(imdb));'''
+
 					dbcur.execute(query4)
 					for i in range(length):
 						query = '''INSERT OR REPLACE INTO %s Values ("%s", "%s", "%s", "%s")''' % (listId, items[i].get('title'), items[i].get('tmdb'), items[i].get('imdb'), dateImported)
@@ -571,6 +562,14 @@ class libmovies:
 					query5 = '''UPDATE %s SET last_import = "%s"''' % (listId, dateImported)
 					dbcur.execute(query5)
 				dbcur.connection.commit()
+			else:
+				length = len(items)
+				for i in range(length):
+					dateImported = datetime.now()
+					query = '''INSERT OR REPLACE INTO %s Values ("%s", "%s", "%s", "%s")''' % (listId, items[i].get('title'), items[i].get('tmdb'), items[i].get('imdb'), dateImported)
+					dbcur.execute(query)
+				dbcur.connection.commit()
+				return items
 			return backitems
 		except: 
 			from resources.lib.modules import log_utils
@@ -581,11 +580,14 @@ class libmovies:
 	def add(self, name, title, year, imdb, tmdb, range=False):
 		try:
 			contains = lib_tools().ckKodiSources()
-			if general_notification:
-				if not control.condVisibility('Window.IsVisible(infodialog)') and not control.condVisibility('Player.HasVideo'):
-					control.notification(title=name, message=32552)
+			if (
+				general_notification
+				and not control.condVisibility('Window.IsVisible(infodialog)')
+				and not control.condVisibility('Player.HasVideo')
+			):
+				control.notification(title=name, message=32552)
 			try:
-				if not self.dupe_chk == 'true': raise Exception()
+				if self.dupe_chk != 'true': raise Exception()
 				id = [imdb, tmdb] if tmdb else [imdb]
 				lib = control.jsonrpc('{"jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params": {"filter":{"or": [{"field": "year", "operator": "is", "value": "%s"}, {"field": "year", "operator": "is", "value": "%s"}, {"field": "year", "operator": "is", "value": "%s"}]}, "properties" : ["imdbnumber", "title", "originaltitle", "year"]}, "id": 1}' % (year, str(int(year)+1), str(int(year)-1)))
 				lib = jsloads(lib)['result']['movies']
@@ -619,8 +621,17 @@ class libmovies:
 		for i in items:
 			try:
 				if control.monitor.abortRequested(): return sysexit()
-				files_added = self.add('%s (%s)' % (i['title'], i['year']), i['title'], i['year'], i['imdb'], i['tmdb'], range=True)
-				if general_notification and files_added > 0: control.notification(title='%s (%s)' % (i['title'], i['year']), message=32554)
+				files_added = self.add(
+					f"{i['title']} ({i['year']})",
+					i['title'],
+					i['year'],
+					i['imdb'],
+					i['tmdb'],
+					range=True,
+				)
+
+				if general_notification and files_added > 0:
+					control.notification(title=f"{i['title']} ({i['year']})", message=32554)
 				if files_added > 0: total_added += 1
 			except: log_utils.error()
 		if self.library_update == 'true' and not control.condVisibility('Library.IsScanningVideo') and total_added > 0:
@@ -643,9 +654,12 @@ class libmovies:
 			elif all(i in url for i in ('themoviedb', '/list/')): message = 32681
 			else: message = 'list import'
 		except: log_utils.error()
-		if general_notification:
-			if not control.condVisibility('Window.IsVisible(infodialog)') and not control.condVisibility('Player.HasVideo'):
-				control.notification(message=message)
+		if (
+			general_notification
+			and not control.condVisibility('Window.IsVisible(infodialog)')
+			and not control.condVisibility('Player.HasVideo')
+		):
+			control.notification(message=message)
 		items = []
 		try:
 			if 'trakt' in url:
@@ -665,20 +679,31 @@ class libmovies:
 				from resources.lib.indexers import tmdb
 				items = tmdb.Movies().tmdb_collections_list(url)
 		except: log_utils.error()
-		if not items:
-			if general_notification: return control.notification(title=message, message=33049)
+		if not items and general_notification:
+			return control.notification(title=message, message=33049)
 		contains = lib_tools().ckKodiSources()
 		total_added = 0
 		numitems = len(items)
-		if silent == False:
-			if not control.yesnoDialog((getLS(40213) % (list_name, numitems)), '', ''): return
-		importmessage = ('Starting import of %s' % list_name)
+		if silent == False and not control.yesnoDialog(
+			(getLS(40213) % (list_name, numitems)), '', ''
+		):
+			return
+		importmessage = f'Starting import of {list_name}'
 		control.notification(title='Importing', message=importmessage)
 		for i in items:
 			if control.monitor.abortRequested(): return sysexit()
 			try:
-				files_added = self.add('%s (%s)' % (i['title'], i['year']), i['title'], i['year'], i['imdb'], i['tmdb'], range=True)
-				if general_notification and files_added > 0: control.notification(title='%s (%s)' % (i['title'], i['year']), message=32554)
+				files_added = self.add(
+					f"{i['title']} ({i['year']})",
+					i['title'],
+					i['year'],
+					i['imdb'],
+					i['tmdb'],
+					range=True,
+				)
+
+				if general_notification and files_added > 0:
+					control.notification(title=f"{i['title']} ({i['year']})", message=32554)
 				if files_added > 0: total_added += 1
 			except: log_utils.error()
 		try:
@@ -696,10 +721,17 @@ class libmovies:
 			if contains:
 				control.sleep(10000)
 				control.execute('UpdateLibrary(video)')
-				control.notification(title='Import Complete', message='[B]%s[/B] Items imported from [B]%s[/B]' % (total_added, list_name))
+				control.notification(
+					title='Import Complete',
+					message=f'[B]{total_added}[/B] Items imported from [B]{list_name}[/B]',
+				)
+
 			elif general_notification: 
 				control.notification(message=32103)
-				control.notification(title='Import Complete', message='[B]%s[/B] items imported from [B]%s[/B] with some strm errors.' % (total_added, list_name))
+				control.notification(
+					title='Import Complete',
+					message=f'[B]{total_added}[/B] items imported from [B]{list_name}[/B] with some strm errors.',
+				)
 		#libuserlist().set_update_dateTime()
 
 	def strmFile(self, i):
@@ -710,13 +742,27 @@ class libmovies:
 			except: transtitle = title.translate(title.maketrans('', '', '\/:*?"<>|'))
 			transtitle = string_tools.normalize(transtitle)
 			if control.setting('library.strm.use_tmdbhelper') == 'true':
-				content = 'plugin://plugin.video.themoviedb.helper/?info=play&tmdb_type=movie&islocal=True&tmdb_id=%s' % tmdb
+				content = f'plugin://plugin.video.themoviedb.helper/?info=play&tmdb_type=movie&islocal=True&tmdb_id={tmdb}'
+
 			else:
-				content = 'plugin://plugin.video.umbrella/?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s' % (systitle, year, imdb, tmdb)
+				content = f'plugin://plugin.video.umbrella/?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}'
+
 			folder = lib_tools.make_path(self.library_folder, transtitle, year)
 			lib_tools.create_folder(folder)
-			lib_tools.write_file(control.joinPath(folder, lib_tools.legal_filename(transtitle) + '.' + year + '.strm'), content)
-			lib_tools.write_file(control.joinPath(folder, lib_tools.legal_filename(transtitle) + '.' + year + '.nfo'), lib_tools.nfo_url('movie', i))
+			lib_tools.write_file(
+				control.joinPath(
+					folder, f'{lib_tools.legal_filename(transtitle)}.{year}.strm'
+				),
+				content,
+			)
+
+			lib_tools.write_file(
+				control.joinPath(
+					folder, f'{lib_tools.legal_filename(transtitle)}.{year}.nfo'
+				),
+				lib_tools.nfo_url('movie', i),
+			)
+
 		except: log_utils.error()
 
 

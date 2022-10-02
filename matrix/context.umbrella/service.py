@@ -47,8 +47,12 @@ class AddonCheckUpdate:
 			import re
 			import requests
 			repo_xml = requests.get('https://raw.githubusercontent.com/umbrellaplug/umbrellaplug.github.io/master/matrix/context.umbrella/addon.xml')
-			if not repo_xml.status_code == 200:
-				xbmc.log('[ context.umbrella ]  Could not connect to remote repo XML: status code = %s' % repo_xml.status_code, LOGNOTICE)
+			if repo_xml.status_code != 200:
+				xbmc.log(
+					f'[ context.umbrella ]  Could not connect to remote repo XML: status code = {repo_xml.status_code}',
+					LOGNOTICE,
+				)
+
 				return
 			repo_version = re.findall(r'<addon id=\"context.umbrella\".+version=\"(\d*.\d*.\d*)\"', repo_xml.text)[0]
 			local_version = xbmcaddon.Addon('context.umbrella').getAddonInfo('version')[:5] # 5 char max so pre-releases do try to compare more chars than github version
@@ -63,10 +67,15 @@ class AddonCheckUpdate:
 						step += 1
 						continue
 				return False
+
 			if check_version_numbers(local_version, repo_version):
 				while xbmc.getCondVisibility('Library.IsScanningVideo'):
 					xbmc.sleep(10000)
-				xbmc.log('[ context.umbrella ]  A newer version is available. Installed Version: v%s, Repo Version: v%s' % (local_version, repo_version), LOGNOTICE)
+				xbmc.log(
+					f'[ context.umbrella ]  A newer version is available. Installed Version: v{local_version}, Repo Version: v{repo_version}',
+					LOGNOTICE,
+				)
+
 				message = 'A new verison of "Umbrella - Global Context Menu Items" is available from the repository. Please consider updating to v%s'
 				xbmcgui.Dialog().notification(title='context.umbrella', message=message % repo_version, icon=xbmcgui.NOTIFICATION_INFO, time=5000, sound=False)
 		except:

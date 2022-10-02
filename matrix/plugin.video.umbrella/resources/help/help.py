@@ -10,11 +10,10 @@ from resources.lib.windows.textviewer import TextViewerXML
 def get(file):
 	umbrella_path = addonPath(addonId())
 	umbrella_version = getUmbrellaVersion()
-	helpFile = joinPath(umbrella_path, 'resources', 'help', file + '.txt')
-	f = open(helpFile, 'r', encoding='utf-8', errors='ignore')
-	text = f.read()
-	f.close()
-	heading = '[B]Umbrella -  v%s - %s[/B]' % (umbrella_version, file)
+	helpFile = joinPath(umbrella_path, 'resources', 'help', f'{file}.txt')
+	with open(helpFile, 'r', encoding='utf-8', errors='ignore') as f:
+		text = f.read()
+	heading = f'[B]Umbrella -  v{umbrella_version} - {file}[/B]'
 	windows = TextViewerXML('textviewer.xml', umbrella_path, heading=heading, text=text)
 	windows.run()
 	del windows

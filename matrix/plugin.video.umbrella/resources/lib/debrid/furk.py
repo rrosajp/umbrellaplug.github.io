@@ -50,10 +50,7 @@ class Furk:
 			log_utils.error()
 		for count, item in enumerate(files, 1):
 			try:
-				cached = True if 'url_dl' in item else False
-				files_str = 'files'
-
-				if cached:
+				if cached := 'url_dl' in item:
 					files_num_video = item['files_num_video']
 					name = string_tools.strip_non_ascii_and_unprintable(item['name'])
 
@@ -61,20 +58,11 @@ class Furk:
 					url_dl = item['url_dl'] if cached else item['info_hash']
 
 					size = str(round(float(item['size']) / 1048576000, 1))
+					files_str = 'files'
+
 					label = '%02d | [B]%s GB[/B] | [B]%s %s[/B] |[I] %s [/I]' % (count, size, files_num_video, files_str, name)
 
-					# url_dl = ''
-					# for x in accepted_extensions:
-						# if item['url_dl'].endswith(x): url_dl = item['url_dl']
-						# else: continue
-					# if url_dl == '': continue
-
-					# if not int(item['files_num_video_player']) > 1:
-						# if int(item['ss_num']) > 0: thumb = item['ss_urls'][0]
-						# else: thumb = ''
-						# self.addDirectoryItem(label , url_dl, thumb, '', isAction=False)
 					self.addDirectoryItem(label , url_dl, furk_icon, '', isAction=False)
-				else: pass
 			except:
 				from resources.lib.modules import log_utils
 				log_utils.error()
@@ -126,7 +114,15 @@ class Furk:
 			for (id, term) in sorted(dbcur.fetchall(), key=lambda k: re_sub(r'(^the |^a |^an )', '', k[1].lower()), reverse=False):
 				if term not in str(lst):
 					delete_option = True
-					navigator.Navigator().addDirectoryItem(term, 'furk_searchResults&query=%s' % term, 'search.png', 'DefaultAddonsSearch.png', isSearch=True, table='furk')
+					navigator.Navigator().addDirectoryItem(
+						term,
+						f'furk_searchResults&query={term}',
+						'search.png',
+						'DefaultAddonsSearch.png',
+						isSearch=True,
+						table='furk',
+					)
+
 					lst += [(term)]
 		except:
 			from resources.lib.modules import log_utils
@@ -154,13 +150,15 @@ class Furk:
 		finally:
 			dbcur.close() ; dbcon.close()
 		control.closeAll()
-		control.execute('ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=furk_searchResults&query=%s,return)' % quote_plus(query))
+		control.execute(
+			f'ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=furk_searchResults&query={quote_plus(query)},return)'
+		)
 
 	def query_results_to_dialog(self, query):
 		if not self.api_key: return
 		try:
 			downloadMenu = getLS(40048)
-			query = '@name+%s' % query
+			query = f'@name+{query}'
 			url = (base_link + search_link % (self.api_key, query, 'extended', 'no', '')).replace(' ', '+')
 			response = session.get(url, timeout=20).json()
 			if 'files' not in response: # with reuselanguageinvoker on an empty directory must be loaded, do not use sys.exit()
@@ -175,16 +173,20 @@ class Furk:
 		for count, item in enumerate(files, 1):
 			try:
 				if item['is_ready'] == '1' and item['type'] == 'video':
-					cm = []
 					name = string_tools.strip_non_ascii_and_unprintable(item['name'])
 					file_id = item['id']
 					url_dl = item['url_dl']
 					if url_dl == '': continue
 					size = str(round(float(int(item['size'])) / 1048576000, 1))
 					label = '%02d | [B]%s GB[/B] | [I]%s [/I]' % (count, size, name)
-					url = 'furk_resolve_forPlayback&url=%s' % file_id
-					cm.append((downloadMenu, 'RunPlugin(plugin://plugin.video.umbrella/?action=download&name=%s&image=%s&url=%s&caller=furk)' %
-										(quote_plus(name), quote_plus(furk_icon), file_id)))
+					url = f'furk_resolve_forPlayback&url={file_id}'
+					cm = [
+						(
+							downloadMenu,
+							f'RunPlugin(plugin://plugin.video.umbrella/?action=download&name={quote_plus(name)}&image={quote_plus(furk_icon)}&url={file_id}&caller=furk)',
+						)
+					]
+
 					self.addDirectoryItem(label, url, furk_icon, '', cm)
 			except:
 				from resources.lib.modules import log_utils
@@ -195,7 +197,7 @@ class Furk:
 		from sys import argv
 		try:
 			if isinstance(name, int): name = getLS(name)
-			url = 'plugin://plugin.video.umbrella/?action=%s' % query if isAction else query
+			url = f'plugin://plugin.video.umbrella/?action={query}' if isAction else query
 			item = control.item(label=name, offscreen=True)
 			if context: item.addContextMenuItems(context)
 			item.setArt({'icon': thumb, 'poster': thumb, 'thumb': thumb, 'fanart': addonFanart, 'banner': thumb})
@@ -231,8 +233,8 @@ class Furk:
 			files = files['t_files']
 
 			for i in files:
-				if 'video' not in i['ct']: pass
-				else: self.files.append(i)
+				if 'video' in i['ct']:
+					self.files.append(i)
 			for i in self.files:
 				if 'is_largest' in i: url = i['url_dl']
 
@@ -300,8 +302,7 @@ class Furk:
 	def clear_api(self):
 		try:
 			control.setSetting('furk.api', '')
-			furkmessage = control.notification(message='Furk Key Cleared')
-			return furkmessage
+			return control.notification(message='Furk Key Cleared')
 		except:
 			from resources.lib.modules import log_utils
 			log_utils.error()

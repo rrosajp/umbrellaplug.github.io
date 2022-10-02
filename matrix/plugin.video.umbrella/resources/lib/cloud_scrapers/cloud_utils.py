@@ -33,7 +33,6 @@ def cloud_check_title(title, aliases, release_title):
 				from resources.lib.modules import log_utils
 				log_utils.error()
 	try:
-		match = True
 		title = title.replace('&', 'and')
 		title_list_append(title)
 
@@ -41,7 +40,10 @@ def cloud_check_title(title, aliases, release_title):
 		release_title = release_title.replace('&', 'and')
 		release_title = re.split(r'(?:19|20)[0-9]{2}', release_title)[0] # split by 4 digit year
 
-		if all(cleantitle.get(i) not in cleantitle.get(release_title) for i in title_list): match = False
+		match = any(
+			cleantitle.get(i) in cleantitle.get(release_title) for i in title_list
+		)
+
 		return match
 	except:
 		from resources.lib.modules import log_utils
@@ -51,7 +53,8 @@ def cloud_check_title(title, aliases, release_title):
 def release_title_format(release_title):
 	try:
 		release_title = release_title.lower().replace("'", "").lstrip('.').rstrip('.')
-		fmt = '.%s.' % re.sub(r'[^a-z0-9-~]+', '.', release_title).replace('.-.', '-').replace('-.', '-').replace('.-', '-').replace('--', '-')
+		fmt = f".{re.sub('[^a-z0-9-~]+', '.', release_title).replace('.-.', '-').replace('-.', '-').replace('.-', '-').replace('--', '-')}."
+
 		return fmt
 	except:
 		from resources.lib.modules import log_utils

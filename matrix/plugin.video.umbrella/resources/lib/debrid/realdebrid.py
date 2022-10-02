@@ -69,19 +69,21 @@ class RealDebrid:
 
 			# if not fail_check: # with fail_check=True new token does not get added
 			if '?' not in url:
-				url += "?auth_token=%s" % self.token
+				url += f"?auth_token={self.token}"
 			else:
-				url += "&auth_token=%s" % self.token
+				url += f"&auth_token={self.token}"
 			response = session.get(url, timeout=45) # cache checkiing of show packs results in random timeout at 30
 			if 'Temporarily Down For Maintenance' in response.text:
 				if self.server_notifications: control.notification(message='Real-Debrid Temporarily Down For Maintenance', icon=rd_icon)
 				log_utils.log('Real-Debrid Temporarily Down For Maintenance', level=log_utils.LOGWARNING)
 				return None
 			else: response = response.json()
-			if any(value in str(response) for value in ('bad_token', 'Bad Request')):
-				if not fail_check:
-					if self.refresh_token() and token_ck: return
-					response = self._get(original_url, fail_check=True)
+			if (
+				any(value in str(response) for value in ('bad_token', 'Bad Request'))
+				and not fail_check
+			):
+				if self.refresh_token() and token_ck: return
+				response = self._get(original_url, fail_check=True)
 			return response
 		except requests.exceptions.ConnectionError:
 			if self.server_notifications: control.notification(message='Failed to connect to Real-Debrid', icon=rd_icon)
@@ -98,9 +100,9 @@ class RealDebrid:
 				log_utils.log('No Real Debrid Token Found', level=log_utils.LOGWARNING)
 				return None
 			if '?' not in url:
-				url += "?auth_token=%s" % self.token
+				url += f"?auth_token={self.token}"
 			else:
-				url += "&auth_token=%s" % self.token
+				url += f"&auth_token={self.token}"
 			response = session.post(url, data=data, timeout=15)
 			if '[204]' in str(response): return None
 			if 'Temporarily Down For Maintenance' in response.text:
@@ -115,19 +117,17 @@ class RealDebrid:
 				message = response.get('error')
 				if message == 'action_already_done': return None
 				if self.server_notifications: control.notification(message=message, icon=rd_icon)
-				log_utils.log('Real-Debrid Error:  %s' % message, log_utils.LOGWARNING)
+				log_utils.log(f'Real-Debrid Error:  {message}', log_utils.LOGWARNING)
 				return None
 			return response
 		except: log_utils.error()
 
 	def auth_loop(self, fromSettings=0):
 		control.sleep(self.auth_step*1000)
-		url = 'client_id=%s&code=%s' % (self.client_ID, self.device_code)
+		url = f'client_id={self.client_ID}&code={self.device_code}'
 		url = oauth_base_url + credentials_url % url
 		response = session.get(url)
-		if 'error' in response.text:
-			return #
-		else:
+		if 'error' not in response.text:
 			try:
 				response = response.json()
 				control.progressDialog.close()
@@ -138,12 +138,12 @@ class RealDebrid:
 				control.okDialog(title='default', message=40019)
 				if fromSettings == 1:
 					control.openSettings('7.2', 'plugin.video.umbrella')
-			return
+		return #
 
 	def auth(self, fromSettings=0):
 		self.secret = ''
 		self.client_ID = 'X245A4XAIBGVM'
-		url = 'client_id=%s&new_credentials=yes' % self.client_ID
+		url = f'client_id={self.client_ID}&new_credentials=yes'
 		url = oauth_base_url + device_code_url % url
 		response = session.get(url).json()
 		line = '%s\n%s'
@@ -153,7 +153,7 @@ class RealDebrid:
 		self.auth_timeout = int(response['expires_in'])
 		self.auth_step = int(response['interval'])
 		self.device_code = response['device_code']
-		while self.secret == '':
+		while not self.secret:
 			if progressDialog.iscanceled():
 				progressDialog.close()
 				break
@@ -196,14 +196,24 @@ class RealDebrid:
 			folder_str, deleteMenu = getLS(40046).upper(), getLS(40050)
 			for count, item in enumerate(torrent_files, 1):
 				try:
-					cm = []
-					isFolder = True if item['status'] == 'downloaded' else False
-					status = '[COLOR %s]%s[/COLOR]' % (control.getHighlightColor(), item['status'].capitalize())
+					isFolder = item['status'] == 'downloaded'
+					status = f"[COLOR {control.getHighlightColor()}]{item['status'].capitalize()}[/COLOR]"
+
 					folder_name = string_tools.strip_non_ascii_and_unprintable(item['filename'])
 					label = '%02d | [B]%s[/B] - %s | [B]%s[/B] | [I]%s [/I]' % (count, status, str(item['progress']) + '%', folder_str, folder_name)
-					url = '%s?action=rd_BrowseUserTorrents&id=%s' % (sysaddon, item['id']) if isFolder else None
-					cm.append((deleteMenu % 'Torrent', 'RunPlugin(%s?action=rd_DeleteUserTorrent&id=%s&name=%s)' %
-							(sysaddon, item['id'], quote_plus(folder_name))))
+					url = (
+						f"{sysaddon}?action=rd_BrowseUserTorrents&id={item['id']}"
+						if isFolder
+						else None
+					)
+
+					cm = [
+						(
+							deleteMenu % 'Torrent',
+							f"RunPlugin({sysaddon}?action=rd_DeleteUserTorrent&id={item['id']}&name={quote_plus(folder_name)})",
+						)
+					]
+
 					item = control.item(label=label, offscreen=True)
 					item.addContextMenuItems(cm)
 					item.setArt({'icon': rd_icon, 'poster': rd_icon, 'thumb': rd_icon, 'fanart': addonFanart, 'banner': rd_icon})
@@ -232,22 +242,30 @@ class RealDebrid:
 			log_utils.log('Real-Debrid Error:  browse_user_torrents failed', __name__, log_utils.LOGWARNING)
 			return
 		file_str, downloadMenu, renameMenu, deleteMenu, clearFinishedMenu = \
-				getLS(40047).upper(), getLS(40048), getLS(40049), getLS(40050), getLS(40051)
+					getLS(40047).upper(), getLS(40048), getLS(40049), getLS(40050), getLS(40051)
 		for count, item in enumerate(pack_info, 1):
 			try:
-				cm = []
 				try: url_link = item['url_link']
 				except: continue
-				if url_link.startswith('/'): url_link = 'http' + url_link
+				if url_link.startswith('/'):
+					url_link = f'http{url_link}'
 				name = item['path']
 				if name.startswith('/'): name = name.split('/')[-1]
 				size = float(int(item['bytes'])) / 1073741824
 				label = '%02d | [B]%s[/B] | %.2f GB | [I]%s [/I]' % (count, file_str, size, name)
-				url = '%s?action=play_URL&url=%s&caller=realdebrid&type=unrestrict' % (sysaddon, url_link)
-				cm.append((downloadMenu, 'RunPlugin(%s?action=download&name=%s&image=%s&url=%s&caller=realdebrid&type=unrestrict)' %
-							(sysaddon, quote_plus(name), quote_plus(rd_icon), url_link)))
-				cm.append((deleteMenu % 'Torrent', 'RunPlugin(%s?action=rd_DeleteUserTorrent&id=%s&name=%s)' %
-							(sysaddon, item['id'], quote_plus(name))))
+				url = f'{sysaddon}?action=play_URL&url={url_link}&caller=realdebrid&type=unrestrict'
+
+				cm = [
+					(
+						downloadMenu,
+						f'RunPlugin({sysaddon}?action=download&name={quote_plus(name)}&image={quote_plus(rd_icon)}&url={url_link}&caller=realdebrid&type=unrestrict)',
+					),
+					(
+						deleteMenu % 'Torrent',
+						f"RunPlugin({sysaddon}?action=rd_DeleteUserTorrent&id={item['id']}&name={quote_plus(name)})",
+					),
+				]
+
 				item = control.item(label=label, offscreen=True)
 				item.addContextMenuItems(cm)
 				item.setArt({'icon': rd_icon, 'poster': rd_icon, 'thumb': rd_icon, 'fanart': addonFanart, 'banner': rd_icon})
@@ -261,21 +279,31 @@ class RealDebrid:
 		try:
 			if not control.yesnoDialog(getLS(40050) % '?\n' + name, '', ''): return
 			ck_token = self._get('user', token_ck=True) # check token, and refresh if needed
-			url = torrents_delete_url + "/%s&auth_token=%s" % (media_id, self.token)
+			url = f"{torrents_delete_url}/{media_id}&auth_token={self.token}"
 			response = session.delete(rest_base_url + url)
-			if not 'error' in response:
-				if self.server_notifications: control.notification(message='Real-Debrid: %s was removed from your active Torrents' % name, icon=rd_icon)
-				log_utils.log('Real-Debrid: %s was removed from your active Torrents' % name, __name__, log_utils.LOGDEBUG)
+			if 'error' not in response:
+				if self.server_notifications:
+					control.notification(
+						message=f'Real-Debrid: {name} was removed from your active Torrents',
+						icon=rd_icon,
+					)
+
+				log_utils.log(
+					f'Real-Debrid: {name} was removed from your active Torrents',
+					__name__,
+					log_utils.LOGDEBUG,
+				)
+
 				control.refresh()
 		except:
-			log_utils.error('Real-Debrid Error: DELETE USER TORRENT %s : ' % name)
+			log_utils.error(f'Real-Debrid Error: DELETE USER TORRENT {name} : ')
 			raise
 
 	def downloads(self, page):
 		import math
 		try:
 			ck_token = self._get('user', token_ck=True) # check token, and refresh if needed
-			url = 'downloads?page=%s&auth_token=%s' % (page, self.token)
+			url = f'downloads?page={page}&auth_token={self.token}'
 			response = session.get(rest_base_url + url)
 			total_count = float(response.headers['X-Total-Count'])
 			pages = int(math.ceil(total_count / 50.0))
@@ -295,17 +323,23 @@ class RealDebrid:
 		for count, item in enumerate(my_downloads, 1):
 			if page > 1: count += (page-1) * 50
 			try: 
-				cm = []
 				datetime_object = cleandate.datetime_from_string(item['generated'], FormatDateTime)
 				name = string_tools.strip_non_ascii_and_unprintable(item['filename'])
 				size = float(int(item['filesize'])) / 1073741824
 				label = '%02d | %.2f GB | %s  | [I]%s [/I]' % (count, size, datetime_object, name)
 				url_link = item['download']
-				url = '%s?action=play_URL&url=%s' % (sysaddon, url_link)
-				cm.append((downloadMenu, 'RunPlugin(%s?action=download&name=%s&image=%s&url=%s&caller=realdebrid)' %
-								(sysaddon, quote_plus(name), quote_plus(rd_icon), url_link)))
-				cm.append((deleteMenu % 'File', 'RunPlugin(%s?action=rd_DeleteDownload&id=%s&name=%s)' %
-								(sysaddon, item['id'], name)))
+				url = f'{sysaddon}?action=play_URL&url={url_link}'
+				cm = [
+					(
+						downloadMenu,
+						f'RunPlugin({sysaddon}?action=download&name={quote_plus(name)}&image={quote_plus(rd_icon)}&url={url_link}&caller=realdebrid)',
+					),
+					(
+						deleteMenu % 'File',
+						f"RunPlugin({sysaddon}?action=rd_DeleteDownload&id={item['id']}&name={name})",
+					),
+				]
+
 				item = control.item(label=label, offscreen=True)
 				item.addContextMenuItems(cm)
 				item.setArt({'icon': rd_icon, 'poster': rd_icon, 'thumb': rd_icon, 'fanart': addonFanart, 'banner': rd_icon})
@@ -319,9 +353,9 @@ class RealDebrid:
 		if next:
 			try:
 				nextMenu = getLS(32053)
-				url = '%s?action=rd_MyDownloads&query=%s' % (sysaddon, page)
-				page = '  [I](%s)[/I]' % page
-				nextMenu = '[COLOR skyblue]' + nextMenu + page + '[/COLOR]'
+				url = f'{sysaddon}?action=rd_MyDownloads&query={page}'
+				page = f'  [I]({page})[/I]'
+				nextMenu = f'[COLOR skyblue]{nextMenu}{page}[/COLOR]'
 				item = control.item(label=nextMenu, offscreen=True)
 				icon = control.addonNext()
 				item.setArt({'icon': rd_icon, 'poster': rd_icon, 'thumb': rd_icon, 'fanart': addonFanart, 'banner': rd_icon})
@@ -334,13 +368,24 @@ class RealDebrid:
 		try:
 			if not control.yesnoDialog(getLS(40050) % '?\n' + name, '', ''): return
 			ck_token = self._get('user', token_ck=True) # check token, and refresh if needed
-			url = downloads_delete_url + "/%s&auth_token=%s" % (media_id, self.token)
+			url = f"{downloads_delete_url}/{media_id}&auth_token={self.token}"
 			response = session.delete(rest_base_url + url)
-			if not 'error' in response:
-				if self.server_notifications: control.notification(message='Real-Debrid: %s was removed from your MyDownloads' % name, icon=rd_icon)
-				log_utils.log('Real-Debrid: %s was removed from your MyDownloads' % name, __name__, log_utils.LOGDEBUG)
+			if 'error' not in response:
+				if self.server_notifications:
+					control.notification(
+						message=f'Real-Debrid: {name} was removed from your MyDownloads',
+						icon=rd_icon,
+					)
+
+				log_utils.log(
+					f'Real-Debrid: {name} was removed from your MyDownloads',
+					__name__,
+					log_utils.LOGDEBUG,
+				)
+
 				control.refresh()
-		except: log_utils.error('Real-Debrid Error: DELETE DOWNLOAD %s : ' % name)
+		except:
+			log_utils.error(f'Real-Debrid Error: DELETE DOWNLOAD {name} : ')
 
 	def check_cache(self, hashList):
 		if isinstance(hashList, list): hashString = '/' + '/'.join(hashList)
@@ -470,8 +515,8 @@ class RealDebrid:
 			list_file_items = []
 			info_hash = info_hash.lower()
 			extensions = supported_video_extensions()
-			torrent_files = self._get(check_cache_url + '/' + info_hash)
-			if not info_hash in torrent_files: return None
+			torrent_files = self._get(f'{check_cache_url}/{info_hash}')
+			if info_hash not in torrent_files: return None
 			torrent_id = self.add_magnet(magnet_url)
 			if not torrent_id: return None
 			torrent_files = torrent_files[info_hash]['rd']
@@ -485,12 +530,18 @@ class RealDebrid:
 			torrent_keys = ','.join(video_only_items)
 			self.add_torrent_select(torrent_id, torrent_keys)
 			torrent_info = self.torrent_info(torrent_id)
-			list_file_items = [dict(i, **{'link':torrent_info['links'][idx]}) for idx, i in enumerate([i for i in torrent_info['files'] if i['selected'] == 1])]
+			list_file_items = [
+				dict(i, **{'link': torrent_info['links'][idx]})
+				for idx, i in enumerate(
+					i for i in torrent_info['files'] if i['selected'] == 1
+				)
+			]
+
 			list_file_items = [{'link': i['link'], 'filename': i['path'].replace('/', ''), 'size': float(i['bytes']) / 1073741824} for i in list_file_items]
 			if not self.store_to_cloud: self.delete_torrent(torrent_id) # this will keep all browsed items, should add check to see if item was already in cloud and keep it.
 			return list_file_items
 		except:
-			log_utils.error('Real-Debrid Error: DISPLAY MAGNET PACK %s : ' % magnet_url)
+			log_utils.error(f'Real-Debrid Error: DISPLAY MAGNET PACK {magnet_url} : ')
 			if torrent_id: self.delete_torrent(torrent_id)
 
 	def torrents_activeCount(self):
@@ -505,6 +556,7 @@ class RealDebrid:
 			control.sleep(500)
 			control.okDialog(title=getLS(40018), message=message)
 			return False
+
 		control.busy()
 		try:
 			active_count = self.torrents_activeCount()
@@ -552,7 +604,7 @@ class RealDebrid:
 				if any(item['path'].lower().endswith(x) for x in extensions): append(item)
 			if pack:
 				try:
-					if len(video_files) == 0: return _return_failed()
+					if not video_files: return _return_failed()
 					video_files.sort(key=lambda x: x['path'])
 					torrent_keys = [str(i['id']) for i in video_files]
 					if not torrent_keys: return _return_failed(getLS(40014))
@@ -576,11 +628,11 @@ class RealDebrid:
 				control.notification(message=getLS(32057), icon=rd_icon)
 				return True
 			file_size = round(float(video['bytes']) / (1000 ** 3), 2)
-			line1 = '%s...' % (getLS(40017) % getLS(40058))
+			line1 = f'{getLS(40017) % getLS(40058)}...'
 			line2 = torrent_info['filename']
 			line3 = status
 			control.progressDialog.create(getLS(40018), line % (line1, line2, line3))
-			while not status == 'downloaded':
+			while status != 'downloaded':
 				control.sleep(1000 * interval)
 				torrent_info = self.torrent_info(torrent_id)
 				status = torrent_info['status']
@@ -594,10 +646,9 @@ class RealDebrid:
 					if control.progressDialog.iscanceled():
 						if control.yesnoDialog('Delete RD download also?', 'No will continue the download', 'but close dialog'):
 							return _return_failed(getLS(40014))
-						else:
-							control.progressDialog.close()
-							control.hide()
-							return False
+						control.progressDialog.close()
+						control.hide()
+						return False
 				except: pass
 				if any(x in status for x in stalled): return _return_failed()
 			try: control.progressDialog.close()
@@ -609,9 +660,10 @@ class RealDebrid:
 
 	def torrent_info(self, torrent_id):
 		try:
-			url = torrents_info_url + "/%s" % torrent_id
+			url = f"{torrents_info_url}/{torrent_id}"
 			return self._get(url)
-		except: log_utils.error('Real-Debrid Error: TORRENT INFO %s : ' % torrent_id)
+		except:
+			log_utils.error(f'Real-Debrid Error: TORRENT INFO {torrent_id} : ')
 
 	def add_magnet(self, magnet):
 		try:

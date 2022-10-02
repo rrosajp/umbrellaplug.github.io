@@ -29,7 +29,9 @@ if __name__ == '__main__':
 	sysmeta = quote_plus(jsdumps(meta))
 
 # to browse by Progress
-	xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=episodes&tvshowtitle=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&meta=%s&season=%s&episode=%s,return)' % (systvshowtitle, year, imdb, tmdb, tvdb, sysmeta, season, episode))
+	xbmc.executebuiltin(
+		f'ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=episodes&tvshowtitle={systvshowtitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&meta={sysmeta}&season={season}&episode={episode},return)'
+	)
 
 # # to browse full episode list
 	# xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=episodes&tvshowtitle=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&meta=%s&season=%s,return)' % (systvshowtitle, year, imdb, tmdb, tvdb, sysmeta, season))

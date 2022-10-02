@@ -3,12 +3,16 @@
 	Umbrella Add-on
 """
 
+
 import requests
 import xbmc
 
 API_key = 'bc96b19479c7db6c8ae805744d0bdfe2'
-find_url = 'https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=%s' % ('%s', API_key, '%s')
-externalids_url = 'https://api.themoviedb.org/3/%s/%s/external_ids?api_key=%s' % ('%s', '%s', API_key)
+find_url = f'https://api.themoviedb.org/3/find/%s?api_key={API_key}&external_source=%s'
+
+externalids_url = (
+	f'https://api.themoviedb.org/3/%s/%s/external_ids?api_key={API_key}'
+)
 
 
 def get_request(url):
@@ -22,7 +26,11 @@ def get_request(url):
 	elif 'Retry-After' in response.headers: 	# API REQUESTS ARE BEING THROTTLED, INTRODUCE WAIT TIME (TMDb removed rate-limit on 12-6-20)
 		throttleTime = response.headers['Retry-After']
 		import xbmcgui
-		xbmcgui.Dialog().notification(heading='TMDb', message='TMDB Throttling Applied, Sleeping for %s seconds' % throttleTime)
+		xbmcgui.Dialog().notification(
+			heading='TMDb',
+			message=f'TMDB Throttling Applied, Sleeping for {throttleTime} seconds',
+		)
+
 		xbmc.sleep((int(throttleTime) + 1) * 1000)
 		return get_request(url)
 	else:

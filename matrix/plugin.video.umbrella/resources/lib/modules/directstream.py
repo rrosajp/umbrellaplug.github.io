@@ -22,7 +22,7 @@ def google(url, ref=None):
 			resp = client.request(url, headers=newheaders, redirect=False, output='extended', timeout='10')
 			loc = resp[2]['Location']
 			c = resp[2]['Set-Cookie'].split(';')[0]
-			url = '%s|Cookie=%s' % (loc, c)
+			url = f'{loc}|Cookie={c}'
 			return url
 
 		if any(x in url for x in ('youtube.', 'docid=')):
@@ -31,7 +31,7 @@ def google(url, ref=None):
 		netloc = urlparse(url.strip().lower()).netloc
 		netloc = netloc.split('.google')[0]
 
-		if netloc == 'docs' or netloc == 'drive':
+		if netloc in ['docs', 'drive']:
 			url = url.split('/preview', 1)[0]
 			url = url.replace('drive.google.com', 'docs.google.com')
 
@@ -42,11 +42,11 @@ def google(url, ref=None):
 		except: pass
 
 		result = result[0]
-		if netloc == 'docs' or netloc == 'drive':
+		if netloc in ['docs', 'drive']:
 			result = re.compile(r'"fmt_stream_map",(".+?")').findall(result)[0]
 			result = jsloads(result)
 			result = [i.split('|')[-1] for i in result.split(',')]
-			result = sum([googletag(i, append_height=True) for i in result], [])
+			result = sum((googletag(i, append_height=True) for i in result), [])
 
 		elif netloc == 'photos':
 			result = result.replace('\r', '').replace('\n', '').replace('\t', '')
@@ -54,11 +54,11 @@ def google(url, ref=None):
 			result = result.replace('\\u003d', '=').replace('\\u0026', '&')
 			result = re.compile(r'url=(.+?)&').findall(result)
 			result = [unquote(i) for i in result]
-			result = sum([googletag(i, append_height=True) for i in result], [])
+			result = sum((googletag(i, append_height=True) for i in result), [])
 
 		elif netloc == 'picasaweb':
 			id = re.compile(r'#(\d*)').findall(url)[0]
-			result = re.search(r'feedPreload:\s*(.*}]}})},', result, re.S).group(1)
+			result = re.search(r'feedPreload:\s*(.*}]}})},', result, re.S)[1]
 			result = jsloads(result)['feed']['entry']
 
 			if len(result) > 1: result = [i for i in result if str(id) in i['link'][0]['href']][0]
@@ -66,7 +66,7 @@ def google(url, ref=None):
 
 			result = result['media']['content']
 			result = [i['url'] for i in result if 'video' in i['type']]
-			result = sum([googletag(i, append_height=True) for i in result], [])
+			result = sum((googletag(i, append_height=True) for i in result), [])
 
 		elif netloc == 'plus':
 			id = (urlparse(url).path).split('/')[-1]
@@ -75,7 +75,7 @@ def google(url, ref=None):
 			result = result.replace('\\u003d', '=').replace('\\u0026', '&')
 			result = re.compile(r'url=(.+?)&').findall(result)
 			result = [unquote(i) for i in result]
-			result = sum([googletag(i, append_height=True) for i in result], [])
+			result = sum((googletag(i, append_height=True) for i in result), [])
 		result = sorted(result, key=lambda i: i.get('height', 0), reverse=True)
 		url = []
 
@@ -85,7 +85,7 @@ def google(url, ref=None):
 
 		for i in url:
 			i.pop('height', None)
-			i.update({'url': i['url'] + '|%s' % urlencode(headers)})
+			i.update({'url': i['url'] + f'|{urlencode(headers)}'})
 		if not url: return
 		return url
 	except: return
@@ -116,13 +116,14 @@ def googletag(url, append_height=False):
 					'132': {'quality': 'SD', 'height': 240}, '18': {'quality': 'SD', 'height': 360}, '37': {'quality': '1080p', 'height': 1080},
 					'35': {'quality': 'SD', 'height': 480}, '34': {'quality': 'SD', 'height': 360}, '298': {'quality': 'HD', 'height': 720},
 					'299': {'quality': '1080p', 'height': 1080}, '169': {'quality': 'HD', 'height': 720}}
-	if quality in itag_map:
-		quality = itag_map[quality]
-		if append_height:
-			return [{'quality': quality['quality'], 'height': quality['height'], 'url': url}]
-		else:
-			return [{'quality': quality['quality'], 'url': url}]
-	else: return []
+	if quality not in itag_map:
+		return []
+	quality = itag_map[quality]
+	return (
+		[{'quality': quality['quality'], 'height': quality['height'], 'url': url}]
+		if append_height
+		else [{'quality': quality['quality'], 'url': url}]
+	)
 
 def googlepass(url):
 	try:
@@ -134,7 +135,8 @@ def googlepass(url):
 			url = url.replace('http://', 'https://')
 		else:
 			url = url.replace('https://', 'http://')
-		if headers: url += '|%s' % urlencode(headers)
+		if headers:
+			url += f'|{urlencode(headers)}'
 		return url
 	except: return
 
@@ -143,7 +145,10 @@ def vk(url):
 		query = parse_qs(urlparse(url).query)
 		try: oid, video_id = query['oid'][0], query['id'][0]
 		except: oid, video_id = re.findall(r'\/video(.*)_(.*)', url)[0]
-		sources_url = 'http://vk.com/al_video.php?act=show_inline&al=1&video=%s_%s' % (oid, video_id)
+		sources_url = (
+			f'http://vk.com/al_video.php?act=show_inline&al=1&video={oid}_{video_id}'
+		)
+
 		html = client.request(sources_url)
 		html = re.sub(r'[^\x00-\x7F]+', ' ', html)
 		sources = re.findall(r'(\d+)x\d+.+?(http.+?\.m3u8.+?)n', html)
@@ -163,7 +168,7 @@ def vk(url):
 		if url: return url
 		try: url += [{'quality': 'SD', 'url': sources['240']}]
 		except: pass
-		if not url == []: return url
+		if url: return url
 	except: return
 
 def odnoklassniki(url):
@@ -179,7 +184,7 @@ def odnoklassniki(url):
 		for name, quali in {'sd': 'SD', 'low': 'SD', 'lowest': 'SD', 'mobile': 'SD'}.items():
 			sd += [{'quality': quali, 'url': i.get('url')} for i in result if i.get('name').lower() == name]
 		url = hd + sd[:1]
-		if not url == []:
+		if url != []:
 			return url
 	except: return
 
@@ -190,7 +195,7 @@ def cldmailru(url):
 		r = re.sub(r'[^\x00-\x7F]+', ' ', r)
 		tok = re.findall(r'"tokens"\s*:\s*{\s*"download"\s*:\s*"([^"]+)', r)[0]
 		url = re.findall(r'"weblink_get"\s*:\s*\[.+?"url"\s*:\s*"([^"]+)', r)[0]
-		url = '%s%s?key=%s' % (url, v, tok)
+		url = f'{url}{v}?key={tok}'
 		return url
 	except: return
 
