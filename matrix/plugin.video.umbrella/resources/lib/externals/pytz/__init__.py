@@ -104,7 +104,7 @@ def open_resource(name):
                 resource_stream = None
 
             if resource_stream is not None:
-                return resource_stream(__name__, 'zoneinfo/' + name)
+                return resource_stream(__name__, f'zoneinfo/{name}')
     return open(filename, 'rb')
 
 
@@ -178,15 +178,14 @@ def timezone(zone):
 
     zone = _case_insensitive_zone_lookup(_unmunge_zone(zone))
     if zone not in _tzinfo_cache:
-        if zone in all_timezones_set:  # noqa
-            fp = open_resource(zone)
-            try:
-                _tzinfo_cache[zone] = build_tzinfo(zone, fp)
-            finally:
-                fp.close()
-        else:
+        if zone not in all_timezones_set:
             raise UnknownTimeZoneError(zone)
 
+        fp = open_resource(zone)
+        try:
+            _tzinfo_cache[zone] = build_tzinfo(zone, fp)
+        finally:
+            fp.close()
     return _tzinfo_cache[zone]
 
 
@@ -202,7 +201,7 @@ def _case_insensitive_zone_lookup(zone):
     """case-insensitively matching timezone, else return zone unchanged"""
     global _all_timezones_lower_to_standard
     if _all_timezones_lower_to_standard is None:
-        _all_timezones_lower_to_standard = dict((tz.lower(), tz) for tz in all_timezones)  # noqa
+        _all_timezones_lower_to_standard = {tz.lower(): tz for tz in all_timezones}
     return _all_timezones_lower_to_standard.get(zone.lower()) or zone  # noqa
 
 

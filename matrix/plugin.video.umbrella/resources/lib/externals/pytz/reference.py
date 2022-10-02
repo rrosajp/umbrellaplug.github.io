@@ -42,11 +42,7 @@ class FixedOffset(tzinfo):
 import time as _time
 
 STDOFFSET = timedelta(seconds=-_time.timezone)
-if _time.daylight:
-    DSTOFFSET = timedelta(seconds=-_time.altzone)
-else:
-    DSTOFFSET = STDOFFSET
-
+DSTOFFSET = timedelta(seconds=-_time.altzone) if _time.daylight else STDOFFSET
 DSTDIFF = DSTOFFSET - STDOFFSET
 
 
@@ -54,16 +50,10 @@ DSTDIFF = DSTOFFSET - STDOFFSET
 class LocalTimezone(tzinfo):
 
     def utcoffset(self, dt):
-        if self._isdst(dt):
-            return DSTOFFSET
-        else:
-            return STDOFFSET
+        return DSTOFFSET if self._isdst(dt) else STDOFFSET
 
     def dst(self, dt):
-        if self._isdst(dt):
-            return DSTDIFF
-        else:
-            return ZERO
+        return DSTDIFF if self._isdst(dt) else ZERO
 
     def tzname(self, dt):
         return _time.tzname[self._isdst(dt)]
@@ -80,8 +70,7 @@ Local = LocalTimezone()
 
 
 def first_sunday_on_or_after(dt):
-    days_to_go = 6 - dt.weekday()
-    if days_to_go:
+    if days_to_go := 6 - dt.weekday():
         dt += timedelta(days_to_go)
     return dt
 
@@ -106,10 +95,7 @@ class USTimeZone(tzinfo):
         return self.reprname
 
     def tzname(self, dt):
-        if self.dst(dt):
-            return self.dstname
-        else:
-            return self.stdname
+        return self.dstname if self.dst(dt) else self.stdname
 
     def utcoffset(self, dt):
         return self.stdoffset + self.dst(dt)
@@ -129,10 +115,7 @@ class USTimeZone(tzinfo):
 
         # Can't compare naive to aware objects, so strip the timezone from
         # dt first.
-        if start <= dt.replace(tzinfo=None) < end:
-            return HOUR
-        else:
-            return ZERO
+        return HOUR if start <= dt.replace(tzinfo=None) < end else ZERO
 
 Eastern = USTimeZone(-5, "Eastern", "EST", "EDT")
 Central = USTimeZone(-6, "Central", "CST", "CDT")

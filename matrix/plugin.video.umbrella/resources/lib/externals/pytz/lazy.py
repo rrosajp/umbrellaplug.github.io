@@ -84,10 +84,8 @@ class LazyList(list):
     def __new__(cls, fill_iter=None):
 
         if fill_iter is None:
-            return list()
+            return []
 
-        # We need a new class as we will be dynamically messing with its
-        # methods.
         class LazyList(list):
             pass
 
@@ -97,13 +95,14 @@ class LazyList(list):
             def _lazy(self, *args, **kw):
                 _fill_lock.acquire()
                 try:
-                    if len(fill_iter) > 0:
+                    if fill_iter:
                         list.extend(self, fill_iter.pop())
                         for method_name in cls._props:
                             delattr(LazyList, method_name)
                 finally:
                     _fill_lock.release()
                 return getattr(list, name)(self, *args, **kw)
+
             return _lazy
 
         for name in cls._props:
@@ -150,7 +149,7 @@ class LazySet(set):
             def _lazy(self, *args, **kw):
                 _fill_lock.acquire()
                 try:
-                    if len(fill_iter) > 0:
+                    if fill_iter:
                         for i in fill_iter.pop():
                             set.add(self, i)
                         for method_name in cls._props:
@@ -158,6 +157,7 @@ class LazySet(set):
                 finally:
                     _fill_lock.release()
                 return getattr(set, name)(self, *args, **kw)
+
             return _lazy
 
         for name in cls._props:

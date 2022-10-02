@@ -40,10 +40,18 @@ class TVMaze:
 		elif response.status_code == 404:
 			if getSetting('debug.level') == '1':
 				from resources.lib.modules import log_utils
-				log_utils.log('TVMAZE get_request() failed: (404:NOT FOUND) - URL: %s' % url, __name__, level=log_utils.LOGDEBUG)
+				log_utils.log(
+					f'TVMAZE get_request() failed: (404:NOT FOUND) - URL: {url}',
+					__name__,
+					level=log_utils.LOGDEBUG,
+				)
+
 		elif 'Retry-After' in response.headers: # API REQUESTS ARE BEING THROTTLED, INTRODUCE WAIT TIME
 			throttleTime = response.headers['Retry-After']
-			notification(message='TVMAZE Throttling Applied, Sleeping for %s seconds' % throttleTime)
+			notification(
+				message=f'TVMAZE Throttling Applied, Sleeping for {throttleTime} seconds'
+			)
+
 			sleep((int(throttleTime) + 1) * 1000)
 			return self.get_request(url)
 		else:
@@ -80,7 +88,7 @@ class TVshows(TVMaze):
 				items = client.parseDOM(result, 'span', attrs = {'class': 'title'})
 				list_count = 25
 				page = int(str(url.split('&page=', 1)[1]))
-				next = '%s&page=%s' % (url.split('&page=', 1)[0], page+1)
+				next = f"{url.split('&page=', 1)[0]}&page={page + 1}"
 				last = []
 				last = client.parseDOM(result, 'li', attrs = {'class': 'last disabled'})
 				if last != []: next = ''
@@ -102,7 +110,7 @@ class TVshows(TVMaze):
 				values['next'] = next
 				values['tvmaze'] = tvmaze_id
 				url = info_link % tvmaze_id
-				item = self.get_request(url) 
+				item = self.get_request(url)
 				values['content'] = item.get('type', '').lower()
 				values['mediatype'] = 'tvshow'
 				values['title'] = item.get('name')
@@ -126,13 +134,23 @@ class TVshows(TVMaze):
 				values['status'] = item.get('status', '')
 				values['castandart'] = []
 				for person in item['_embedded']['cast']:
-					try: values['castandart'].append({'name': person['person']['name'], 'role': person['character']['name'], 'thumbnail': (person['person']['image']['medium'] if person['person']['image']['medium'] else '')})
+					try:
+						values['castandart'].append(
+							{
+								'name': person['person']['name'],
+								'role': person['character']['name'],
+								'thumbnail': person['person']['image']['medium'] or '',
+							}
+						)
+
 					except: pass
 					if len(values['castandart']) == 150: break
 				image = item.get('image', {}) or ''
 				values['poster'] = image.get('original', '') if image else ''
-				values['fanart'] = '' ; values['banner'] = ''
-				values['mpaa'] = '' ; values['votes'] = ''
+				values['fanart'] = ''
+				values['banner'] = ''
+				values['mpaa'] = ''
+				values['votes'] = ''
 				try: values['airday'] = item['schedule']['days'][0]
 				except: values['airday'] = ''
 				values['airtime'] = item['schedule']['time'] or ''
@@ -164,7 +182,10 @@ class TVshows(TVMaze):
 
 				showSeasons = cache.get(tmdb_indexer().get_showSeasons_meta, 96, tmdb)
 				if not showSeasons: return
-				showSeasons = dict((k, v) for k, v in iter(showSeasons.items()) if v is not None and v != '') # removes empty keys so .update() doesn't over-write good meta
+				showSeasons = {
+					k: v for k, v in iter(showSeasons.items()) if v is not None and v != ''
+				}
+
 				values.update(showSeasons)
 				if not values.get('imdb'): values['imdb'] = imdb
 				if not values.get('tmdb'): values['tmdb'] = tmdb
@@ -174,7 +195,7 @@ class TVshows(TVMaze):
 					extended_art = fanarttv_cache.get(FanartTv().get_tvshow_art, 336, tvdb)
 					if extended_art: values.update(extended_art)
 				meta = {'imdb': imdb, 'tmdb': tmdb, 'tvdb': tvdb, 'lang': self.lang, 'user': self.user, 'item': values} # DO NOT move this after "values = dict()" below or it becomes the same object and "del meta['item']['next']" removes it from both
-				values = dict((k,v) for k, v in iter(values.items()) if v is not None and v != '')
+				values = {k: v for k, v in iter(values.items()) if v is not None and v != ''}
 				self.list.append(values)
 				if 'next' in meta.get('item'): del meta['item']['next'] # next can not exist in metacache
 				self.meta.append(meta)
@@ -183,6 +204,7 @@ class TVshows(TVMaze):
 			except:
 				from resources.lib.modules import log_utils
 				log_utils.error()
+
 		try:
 			threads = []
 			append = threads.append
@@ -200,14 +222,14 @@ class TVshows(TVMaze):
 			return
 
 	def show_lookup(self, tvdb):
-		url = '%s%s' % (base_link, '/lookup/shows?thetvdb=%s' % tvdb)
+		url = f'{base_link}/lookup/shows?thetvdb={tvdb}'
 		response = self.get_request(url)
 		return response['id']
 
 	def get_full_series(self, tvmaze):
-		url = '%s%s' % (base_link, '/shows/%s?embed[]=seasons&embed[]=episodes&embed[]=cast&embed[]=images' % tvmaze)
-		response = self.get_request(url)
-		return response
+		url = f'{base_link}/shows/{tvmaze}?embed[]=seasons&embed[]=episodes&embed[]=cast&embed[]=images'
+
+		return self.get_request(url)
 
 	def get_networks_thisSeason(self):
 		return [

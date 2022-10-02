@@ -30,21 +30,17 @@ def get(function, duration, *args):
 
 		invalid = False
 		try:  # repr() returns None as a string instead of None type for "fresh_result" as well as below converted strings
-			if not fresh_result: invalid = True
-			elif fresh_result == 'None' or fresh_result == '' or fresh_result == '[]' or fresh_result == '{}': invalid = True
-			elif len(fresh_result) == 0: invalid = True
+			if not fresh_result or fresh_result in {'None', '', '[]', '{}'}: invalid = True
 		except: pass
 
-		if invalid: # If the cache is old, but we didn't get "fresh_result", return the old cache
-			if cache_result: return result
-			else: return None # do not cache_insert() None type, sometimes servers down momentarily
-		else:
-			args = str(args)
-			if '404:NOT FOUND' in fresh_result:
-				cache_insert(key, args, None) # cache_insert() "404:NOT FOUND" cases only as None type to avoid repeated requests
-				return None
-			else: cache_insert(key, args, fresh_result)
-			return literal_eval(fresh_result)
+		if invalid:
+			return result if cache_result else None
+		args = str(args)
+		if '404:NOT FOUND' in fresh_result:
+			cache_insert(key, args, None) # cache_insert() "404:NOT FOUND" cases only as None type to avoid repeated requests
+			return None
+		else: cache_insert(key, args, fresh_result)
+		return literal_eval(fresh_result)
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -55,9 +51,12 @@ def cache_get(key):
 		dbcon = get_connection()
 		dbcur = get_connection_cursor(dbcon)
 		ck_table = dbcur.execute('''SELECT * FROM sqlite_master WHERE type='table' AND name='cache';''').fetchone()
-		if not ck_table: return None
-		results = dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
-		return results
+		return (
+			dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
+			if ck_table
+			else None
+		)
+
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -82,8 +81,7 @@ def cache_insert(key, args, value):
 def remove(function, *args):
 	try:
 		key = _hash_function(function, args)
-		key_exists = cache_get(key)
-		if key_exists:
+		if key_exists := cache_get(key):
 			dbcon = get_connection()
 			dbcur = get_connection_cursor(dbcon)
 			dbcur.execute('''DELETE FROM cache WHERE key=?''', (key,))
@@ -135,13 +133,10 @@ def get_connection():
 	return dbcon
 
 def get_connection_cursor(dbcon):
-	dbcur = dbcon.cursor()
-	return dbcur
+	return dbcon.cursor()
 
 def _dict_factory(cursor, row):
-	d = {}
-	for idx, col in enumerate(cursor.description): d[col[0]] = row[idx]
-	return d
+	return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 def _is_cache_valid(cached_time, cache_timeout):
 	now = int(time())

@@ -24,7 +24,8 @@ def iso_2_utc(iso_ts):
 			tz = None
 		if ts.find('.') > -1: ts = ts[:ts.find('.')]
 		try: d = datetime.strptime(ts, '%Y-%m-%dT%H:%M:%S')
-		except: d = datetime(*(time.strptime(ts, '%Y-%m-%dT%H:%M:%S')[0:6]))
+		except:
+			d = datetime(*time.strptime(ts, '%Y-%m-%dT%H:%M:%S')[:6])
 		dif = timedelta()
 		if tz:
 			hours, minutes = tz.split(':')
@@ -62,7 +63,8 @@ def timestamp_from_string(string_date, format="%Y-%m-%d"):
 	if not string_date: return None
 	try:
 		try: element = datetime.strptime(string_date, format)
-		except: element = datetime(*(time.strptime(string_date, format)[0:6]))
+		except:
+			element = datetime(*time.strptime(string_date, format)[:6])
 		timestamp = datetime.timestamp(element)
 		return timestamp
 	except:

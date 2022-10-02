@@ -82,24 +82,23 @@ class source:
 						if all(not bool(re.search(i, rt)) for i in query_list):
 							if 'tvshowtitle' in data:
 								season_folder_list = self.season_folder_list()
-								if any(bool(re.search(i, path)) for i in season_folder_list):
-									episode_list = self.episode_list()
-									if name != folder_name:
-										if all(not bool(re.search(i, rt)) for i in episode_list): continue
-									else:
-										link = cache.get(AllDebrid().unrestrict_link, 168, file['link'], True)
-										name = link.get('filename', '')
-										if name.lower().endswith(invalid_extensions): continue
-										rt = cloud_utils.release_title_format(name)
-										if any(value in rt for value in extras_filter): continue
-										if all(not bool(re.search(i, rt)) for i in query_list): continue
-										file.update({'size': link.get('filesize')})
-								else: continue
+								if not any(bool(re.search(i, path)) for i in season_folder_list):
+									continue
+								episode_list = self.episode_list()
+								if name == folder_name:
+									link = cache.get(AllDebrid().unrestrict_link, 168, file['link'], True)
+									name = link.get('filename', '')
+									if name.lower().endswith(invalid_extensions): continue
+									rt = cloud_utils.release_title_format(name)
+									if any(value in rt for value in extras_filter): continue
+									if all(not bool(re.search(i, rt)) for i in query_list): continue
+									file.update({'size': link.get('filesize')})
+								elif all(not bool(re.search(i, rt)) for i in episode_list): continue
 							else:
 								if all(not bool(re.search(i, path)) for i in query_list): continue
 								if rt.startswith('.etrg.'): continue # some torrents they included an EXTRATORRENT site promo video
 								from resources.lib.modules import log_utils
-								log_utils.log('rt = %s' % rt, __name__)
+								log_utils.log(f'rt = {rt}', __name__)
 								name = folder.get('filename', '')
 						link = file.get('link', '')
 						size = file.get('size', '')

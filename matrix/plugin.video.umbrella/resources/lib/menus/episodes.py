@@ -44,7 +44,10 @@ class Episodes:
 		self.trakt_directProgressScrape = getSetting('trakt.directProgress.scrape') == 'true'
 		self.trakt_progressFlatten = getSetting('trakt.progressFlatten') == 'true'
 		self.trakt_link = 'https://api.trakt.tv'
-		self.trakthistory_link = 'https://api.trakt.tv/users/me/history/shows?limit=%s&page=1' % self.count
+		self.trakthistory_link = (
+			f'https://api.trakt.tv/users/me/history/shows?limit={self.count}&page=1'
+		)
+
 		self.progress_link = 'https://api.trakt.tv/users/me/watched/shows'
 		self.mycalendarRecent_link = 'https://api.trakt.tv/calendars/my/shows/date[30]/33/'
 		self.mycalendarUpcoming_link = 'https://api.trakt.tv/calendars/my/shows/date[0]/33/'
@@ -63,13 +66,13 @@ class Episodes:
 				if int(re.sub(r'[^0-9]', '', str(episodes[0]['next_episode_to_air']['air_date']))) <= int(re.sub(r'[^0-9]', '', str(self.today_date))):
 					episodes = cache.get(self.tmdb_list, 3, tvshowtitle, imdb, tmdb, tvdb, meta, season)
 			all_episodes.extend(episodes)
+
 		try:
 			if season is None and episode is None: # for "flatten" setting
 				all_episodes = []
 				threads = []
 				append = threads.append
-				if not isinstance(meta, dict): showSeasons = jsloads(meta)
-				else: showSeasons = meta
+				showSeasons = meta if isinstance(meta, dict) else jsloads(meta)
 				try:
 					for i in showSeasons['seasons']:
 						if not self.showspecials and i['season_number'] == 0: continue
@@ -95,8 +98,7 @@ class Episodes:
 					all_episodes = []
 					threads = []
 					append = threads.append
-					if not isinstance(meta, dict): showSeasons = jsloads(meta)
-					else: showSeasons = meta
+					showSeasons = meta if isinstance(meta, dict) else jsloads(meta)
 					try:
 						for i in showSeasons['seasons']:
 							if i['season_number'] <= int(season): continue
@@ -128,7 +130,8 @@ class Episodes:
 	def unfinished(self, url, create_directory=True):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			items = traktsync.fetch_bookmarks(imdb='', ret_all=True, ret_type='episodes')
 			if trakt.getPausedActivity() > cache.timeout(self.trakt_episodes_list, url, self.trakt_user, self.lang, items):
@@ -162,7 +165,8 @@ class Episodes:
 	def upcoming_progress(self, url):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			if self.trakt_link in url and url == self.progress_link:
 				if trakt.getProgressActivity() > cache.timeout(self.trakt_progress_list, url, self.trakt_user, self.lang, self.trakt_directProgressScrape, True):
@@ -173,7 +177,10 @@ class Episodes:
 					for i in range(len(self.list)):
 						if 'premiered' not in self.list[i]: self.list[i]['premiered'] = ''
 						if 'airtime' not in self.list[i]: self.list[i]['airtime'] = ''
-					self.list = sorted(self.list, key=lambda k: (k['premiered'] if k['premiered'] else '3021-01-01', k['airtime'])) # "3021" date hack to force unknown premiered dates to bottom of list
+					self.list = sorted(
+						self.list, key=lambda k: (k['premiered'] or '3021-01-01', k['airtime'])
+					)
+
 				except: pass
 			if self.list is None: self.list = []
 			self.episodeDirectory(self.list, unfinished=False, next=False)
@@ -186,7 +193,8 @@ class Episodes:
 				if self.notifications: control.notification(title=32326, message=33049)
 
 	def clr_progress_cache(self, url):
-		try: url = getattr(self, url + '_link')
+		try:
+			url = getattr(self, f'{url}_link')
 		except: pass
 		cache.remove(self.trakt_progress_list, url, self.trakt_user, self.lang, self.trakt_directProgressScrape)
 		control.sleep(200)
@@ -195,7 +203,8 @@ class Episodes:
 	def calendar(self, url):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			isTraktHistory = (url.split('&page=')[0] in self.trakthistory_link)
 			if self.trakt_link in url and url == self.progress_link:
@@ -206,24 +215,25 @@ class Episodes:
 				if self.list is None: self.list = []
 				# place new season ep1's at top of list for 1 week
 				prior_week = int(re.sub(r'[^0-9]', '', (self.date_time - timedelta(days=7)).strftime('%Y-%m-%d')))
-				sorted_list = []
 				top_items = [i for i in self.list if i['episode'] == 1 and i['premiered'] and (int(re.sub(r'[^0-9]', '', str(i['premiered']))) >= prior_week)]
-				sorted_list.extend(top_items)
+				sorted_list = list(top_items)
 				sorted_list.extend([i for i in self.list if i not in top_items])
 				self.list = sorted_list
 			elif self.trakt_link in url and (url == self.mycalendarRecent_link) or (url == self.mycalendarUpcoming_link) or (url == self.mycalendarPremiers_link):
 				if trakt.getActivity() > cache.timeout(self.trakt_episodes_list, url, self.trakt_user, self.lang):
 					self.list = cache.get(self.trakt_episodes_list, 0, url, self.trakt_user, self.lang)
 				else: self.list = cache.get(self.trakt_episodes_list, 1, url, self.trakt_user, self.lang)
-				if (url == self.mycalendarUpcoming_link) or (url == self.mycalendarPremiers_link):
+				if url in [self.mycalendarUpcoming_link, self.mycalendarPremiers_link]:
 					if self.list:
 						self.list = [i for i in self.list if int(re.sub(r'[^0-9]', '', str(i['premiered']).split('T')[0])) >= int(re.sub(r'[^0-9]', '', str(self.today_date)))]
-						for i in range(len(self.list)): self.list[i]['calendar_unaired'] = True
+						for item in self.list:
+							item['calendar_unaired'] = True
 						self.list = sorted(self.list, key=lambda k: k['premiered'], reverse=False)
 				elif url == self.mycalendarRecent_link:
 					if self.list:
 						self.list = [i for i in self.list if int(re.sub(r'[^0-9]', '', str(i['premiered']).split('T')[0])) <= int(re.sub(r'[^0-9]', '', str(self.today_date)))]
-						for i in range(len(self.list)): self.list[i]['calendar_recent'] = True
+						for item_ in self.list:
+							item_['calendar_recent'] = True
 						self.list = sorted(self.list, key=lambda k: k['premiered'], reverse=True)
 			elif isTraktHistory:
 				if trakt.getActivity() > cache.timeout(self.trakt_episodes_list, url, self.trakt_user, self.lang):
@@ -239,7 +249,7 @@ class Episodes:
 			elif self.tvmaze_link in url:
 				self.list = cache.get(self.tvmaze_list, 1, url, False)
 			if self.list is None: self.list = []
-			hasNext = True if isTraktHistory else False
+			hasNext = isTraktHistory
 			self.episodeDirectory(self.list, unfinished=False, next=hasNext)
 			return self.list
 		except:
@@ -252,8 +262,8 @@ class Episodes:
 	def sort(self, type='shows'):
 		try:
 			if not self.list: return
-			attribute = int(getSetting('sort.%s.type' % type))
-			reverse = int(getSetting('sort.%s.order' % type)) == 1
+			attribute = int(getSetting(f'sort.{type}.type'))
+			reverse = int(getSetting(f'sort.{type}.order')) == 1
 			if attribute == 0: reverse = False # Sorting Order is not enabled when sort method is "Default"
 			if attribute > 0:
 				if attribute == 1:
@@ -287,7 +297,7 @@ class Episodes:
 		d = getLS(32061).split('|')
 		try: days = [(d[0], 'Monday'), (d[1], 'Tuesday'), (d[2], 'Wednesday'), (d[3], 'Thursday'), (d[4], 'Friday'), (d[5], 'Saturday'), (d[6], 'Sunday')]
 		except: days = []
-		for i in range(0, 30):
+		for i in range(30):
 			try:
 				name = (self.date_time - timedelta(days=i))
 				name = (getLS(32062) % (name.strftime('%A'), name.strftime('%d %B')))
@@ -310,14 +320,13 @@ class Episodes:
 				return log_utils.log('tvshowtitle: (%s) missing tmdb_id: ids={imdb: %s, tmdb: %s, tvdb: %s}' % (tvshowtitle, imdb, tmdb, tvdb), __name__, log_utils.LOGDEBUG) # log TMDb shows that they do not have
 		seasonEpisodes = tmdb_indexer().get_seasonEpisodes_meta(tmdb, season)
 		if not seasonEpisodes: return
-		if not isinstance(meta, dict): showSeasons = jsloads(meta)
-		else: showSeasons = meta
+		showSeasons = meta if isinstance(meta, dict) else jsloads(meta)
 		list = []
 		unaired_count = 0
 		for item in seasonEpisodes['episodes']:
 			try:
 				values = {}
-				values.update(seasonEpisodes)
+				values |= seasonEpisodes
 				values.update(item)
 				values['tvshowtitle'] = tvshowtitle
 				values['year'] = showSeasons.get('year')
@@ -340,7 +349,6 @@ class Episodes:
 					elif not values['premiered']:
 						values['unaired'] = 'true'
 						unaired_count += 1
-						pass
 					elif int(re.sub(r'[^0-9]', '', str(values['premiered']))) > int(re.sub(r'[^0-9]', '', str(self.today_date))):
 						values['unaired'] = 'true'
 						unaired_count += 1
@@ -361,9 +369,14 @@ class Episodes:
 			except:
 				from resources.lib.modules import log_utils
 				log_utils.error()
-		for i in range(0, len(list)): list[i].update({'season_isAiring': 'true' if unaired_count >0 else 'false'}) # update for if "season_isAiring", needed for season pack scraping
+		for item_ in list:
+			item_.update({'season_isAiring': 'true' if unaired_count >0 else 'false'})
 		if unaired_count >0:
-			for i in range(0, len(list)): list[i].update({'next_episode_to_air': {'air_date': '2022-02-10', 'episode_number': 7}})
+			for item__ in list:
+				item__.update(
+					{'next_episode_to_air': {'air_date': '2022-02-10', 'episode_number': 7}}
+				)
+
 		return list
 
 	def trakt_progress_list(self, url, user, lang, direct=False, upcoming=False):

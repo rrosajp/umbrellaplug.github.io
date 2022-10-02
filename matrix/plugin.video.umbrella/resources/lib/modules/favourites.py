@@ -16,7 +16,7 @@ def getFavourites(content):
 	try:
 		dbcon = database.connect(favouritesFile)
 		dbcur = dbcon.cursor()
-		items = dbcur.execute("SELECT * FROM %s" % content).fetchall()
+		items = dbcur.execute(f"SELECT * FROM {content}").fetchall()
 		items = [(i[0], eval(i[1])) for i in items]
 	except: items = []
 	finally:
@@ -27,7 +27,7 @@ def getProgress(content):
 	try:
 		dbcon = database.connect(progressFile)
 		dbcur = dbcon.cursor()
-		items = dbcur.execute("SELECT * FROM %s" % content).fetchall()
+		items = dbcur.execute(f"SELECT * FROM {content}").fetchall()
 		items = [(i[0], eval(i[1])) for i in items]
 	except: items = []
 	finally:
@@ -36,7 +36,7 @@ def getProgress(content):
 
 def addFavourite(meta, content):
 	try:
-		item = dict()
+		item = {}
 		meta = jsloads(meta)
 		try: id = meta['imdb']
 		except: id = meta['tvdb']
@@ -56,9 +56,12 @@ def addFavourite(meta, content):
 		control.makeFile(dataPath)
 		dbcon = database.connect(favouritesFile)
 		dbcur = dbcon.cursor()
-		dbcur.execute('''CREATE TABLE IF NOT EXISTS %s (id TEXT, items TEXT, UNIQUE(id));''' % content)
+		dbcur.execute(
+			f'''CREATE TABLE IF NOT EXISTS {content} (id TEXT, items TEXT, UNIQUE(id));'''
+		)
+
 		dbcur.execute('''DELETE FROM %s WHERE id = "%s"''' % (content, id))
-		dbcur.execute('''INSERT INTO %s Values (?, ?)''' % content, (id, repr(item)))
+		dbcur.execute(f'''INSERT INTO {content} Values (?, ?)''', (id, repr(item)))
 		dbcur.connection.commit()
 		control.refresh()
 		control.notification(title=title, message=32117)
@@ -68,7 +71,7 @@ def addFavourite(meta, content):
 
 def addEpisodes(meta, content):
 	try:
-		item = dict()
+		item = {}
 		meta = jsloads(meta)
 		content = "episode"
 		try: id = meta.get('imdb', '') or meta.get('tvdb', '')
@@ -91,9 +94,12 @@ def addEpisodes(meta, content):
 		control.makeFile(dataPath)
 		dbcon = database.connect(favouritesFile)
 		dbcur = dbcon.cursor()
-		dbcur.execute('''CREATE TABLE IF NOT EXISTS %s (id TEXT, items TEXT, UNIQUE(id));''' % content)
+		dbcur.execute(
+			f'''CREATE TABLE IF NOT EXISTS {content} (id TEXT, items TEXT, UNIQUE(id));'''
+		)
+
 		dbcur.execute('''DELETE FROM %s WHERE id = "%s"''' % (content, id))
-		dbcur.execute('''INSERT INTO %s Values (?, ?)''' % content, (id, repr(item)))
+		dbcur.execute(f'''INSERT INTO {content} Values (?, ?)''', (id, repr(item)))
 		dbcur.connection.commit()
 		control.refresh()
 		control.notification(title=title, message=32117)

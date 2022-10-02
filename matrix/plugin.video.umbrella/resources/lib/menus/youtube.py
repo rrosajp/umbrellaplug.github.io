@@ -11,7 +11,7 @@ class yt_index:  # initializes as musicvids, functions can override based on act
 	def __init__(self):
 		self.action = 'musicvids'
 		self.base_url = 'https://raw.githubusercontent.com/umbrellaplug/umbrellaplug.github.io/master/matrix/xml/youtube/'
-		self.mainmenu = self.base_url + 'musicvids.txt'
+		self.mainmenu = f'{self.base_url}musicvids.txt'
 		self.submenu = '%s/%s.txt'
 		self.default_icon = '%s/icons/music_video_folder_icon.png'
 		self.default_fanart = '%s/icons/music_video_folder_fanart.jpg'
@@ -21,7 +21,7 @@ class yt_index:  # initializes as musicvids, functions can override based on act
 			if action == 'youtube':
 				self.action = 'youtube'
 				self.base_url = 'https://raw.githubusercontent.com/umbrellaplug/umbrellaplug.github.io/master/matrix/xml/youtube/'
-				self.mainmenu = self.base_url + 'ytmain.txt'
+				self.mainmenu = f'{self.base_url}ytmain.txt'
 			self.submenu = self.submenu % (self.base_url, '%s')
 			self.default_icon = self.default_icon % (self.base_url)
 			self.default_fanart = self.default_fanart % (self.base_url)

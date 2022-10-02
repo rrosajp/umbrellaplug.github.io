@@ -29,17 +29,13 @@ def get(function, duration, *args):
 		fresh_result = repr(function(*args)) # may need a try-except block for server timeouts
 		invalid = False
 		try:  # Sometimes None is returned as a string instead of None type for "fresh_result"
-			if not fresh_result: invalid = True
-			elif fresh_result == 'None' or fresh_result == '' or fresh_result == '[]' or fresh_result == '{}': invalid = True
-			elif len(fresh_result) == 0: invalid = True
+			if not fresh_result or fresh_result in {'None', '', '[]', '{}'}: invalid = True
 		except: pass
 
-		if invalid: # If the cache is old, but we didn't get "fresh_result", return the old cache
-			if cache_result: return result
-			else: return None # do not cache_insert() None type, sometimes servers just down momentarily
-		else:
-			cache_insert(key, fresh_result)
-			return literal_eval(fresh_result)
+		if invalid:
+			return result if cache_result else None
+		cache_insert(key, fresh_result)
+		return literal_eval(fresh_result)
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -50,9 +46,12 @@ def cache_get(key):
 		dbcon = get_connection()
 		dbcur = get_connection_cursor(dbcon)
 		ck_table = dbcur.execute('''SELECT * FROM sqlite_master WHERE type='table' AND name='cache';''').fetchone()
-		if not ck_table: return None
-		results = dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
-		return results
+		return (
+			dbcur.execute('''SELECT * FROM cache WHERE key=?''', (key,)).fetchone()
+			if ck_table
+			else None
+		)
+
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -77,8 +76,7 @@ def cache_insert(key, value):
 def remove(function, *args):
 	try:
 		key = _hash_function(function, args)
-		key_exists = cache_get(key)
-		if key_exists:
+		if key_exists := cache_get(key):
 			dbcon = get_connection()
 			dbcur = get_connection_cursor(dbcon)
 			dbcur.execute('''DELETE FROM cache WHERE key=?''', (key,))
@@ -94,11 +92,11 @@ def cache_clear_providers():
 	try:
 		dbcon = get_connection()
 		dbcur = get_connection_cursor(dbcon)
+		cleared = True
 		for t in ('cache', 'rel_src', 'rel_url'): # rel_url table was removed 11-8-21
-			dbcur.execute('''DROP TABLE IF EXISTS {}'''.format(t))
+			dbcur.execute(f'''DROP TABLE IF EXISTS {t}''')
 			dbcur.execute('''VACUUM''')
 			dbcur.connection.commit()
-			cleared = True
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -119,13 +117,10 @@ def get_connection():
 	return dbcon
 
 def get_connection_cursor(dbcon):
-	dbcur = dbcon.cursor()
-	return dbcur
+	return dbcon.cursor()
 
 def _dict_factory(cursor, row):
-	d = {}
-	for idx, col in enumerate(cursor.description): d[col[0]] = row[idx]
-	return d
+	return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 def _hash_function(function_instance, *args):
 	return _get_function_name(function_instance) + _generate_md5(args)

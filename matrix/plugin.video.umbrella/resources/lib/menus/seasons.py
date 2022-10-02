@@ -39,15 +39,14 @@ class Seasons:
 		self.list = []
 		if idx:
 			self.list = cache.get(self.tmdb_list, 720, tvshowtitle, imdb, tmdb, tvdb, art)
-			if self.list:
-				if not self.list[0]['status'].lower() in ('ended', 'canceled'):
-					self.list = cache.get(self.tmdb_list, 96, tvshowtitle, imdb, tmdb, tvdb, art)
+			if self.list and self.list[0]['status'].lower() not in ('ended', 'canceled'):
+				self.list = cache.get(self.tmdb_list, 96, tvshowtitle, imdb, tmdb, tvdb, art)
 			if self.list is None: self.list = []
 			if create_directory: self.seasonDirectory(self.list)
-			return self.list
 		else:
 			self.list = self.tmdb_list(tvshowtitle, imdb, tmdb, tvdb, art)
-			return self.list
+
+		return self.list
 
 	def tmdb_list(self, tvshowtitle, imdb, tmdb, tvdb, art):
 #### -- Missing id's lookup -- ####
@@ -77,7 +76,7 @@ class Seasons:
 			try:
 				if not self.showspecials and item['season_number'] == 0: continue
 				values = {}
-				values.update(showSeasons)
+				values |= showSeasons
 				values['mediatype'] = 'season'
 				values['premiered'] = str(item.get('air_date', '')) if item.get('air_date') else ''
 				values['year'] = showSeasons['year'] # use show year not season year.  In seasonDirecotry send InfoLabels year pulled from premiered only.
@@ -86,8 +85,6 @@ class Seasons:
 					if values['status'].lower() == 'ended': pass # season level unaired
 					elif not values['premiered']:
 						values['unaired'] = 'true'
-						# if not self.showunaired: continue # remove at seasonDirectory() instead so cache clear not required on setting change
-						pass
 					elif int(re.sub(r'[^0-9]', '', str(values['premiered']))) > int(re.sub(r'[^0-9]', '', str(self.today_date))):
 						values['unaired'] = 'true'
 						# if not self.showunaired: continue # remove at seasonDirectory() instead so cache clear not required on setting change

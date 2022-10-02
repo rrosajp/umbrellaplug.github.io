@@ -29,9 +29,13 @@ def enabledCheck(cloud_scraper):
 	parent_dict = {'ad_cloud': 'alldebrid', 'pm_cloud': 'premiumize', 'rd_cloud': 'realdebrid'}
 	try:
 		parent_setting = parent_dict[cloud_scraper]
-		if not getSetting(parent_setting + '.token'): return False
-		if getSetting(parent_setting + '.enable') == 'true' and getSetting(cloud_scraper + '.enabled') == 'true': return True
-		else: return False
+		return (
+			getSetting(f'{parent_setting}.enable') == 'true'
+			and getSetting(f'{cloud_scraper}.enabled') == 'true'
+			if getSetting(f'{parent_setting}.token')
+			else False
+		)
+
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()

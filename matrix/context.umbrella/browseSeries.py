@@ -26,8 +26,7 @@ if __name__ == '__main__':
 	sysart = quote_plus(params.get('art', '')) if params.get('art') else ''
 	if not sysart and 'meta' in params:
 		meta = jsloads(params['meta'])
-		art = {}
-		art['fanart'] = meta.get('fanart', '')
+		art = {'fanart': meta.get('fanart', '')}
 		art['icon'] = meta.get('icon', '')
 		art['thumb'] = meta.get('thumb', '')
 		art['banner'] = meta.get('banner', '')
@@ -37,4 +36,6 @@ if __name__ == '__main__':
 		art['tvshow.poster'] = meta.get('tvshow_poster', '')
 		sysart = quote_plus(jsdumps(art))
 
-	xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=seasons&tvshowtitle=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&art=%s,return)' % (systvshowtitle, year, imdb, tmdb, tvdb, sysart))
+	xbmc.executebuiltin(
+		f'ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=seasons&tvshowtitle={systvshowtitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&art={sysart},return)'
+	)

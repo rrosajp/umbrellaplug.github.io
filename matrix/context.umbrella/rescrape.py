@@ -22,6 +22,7 @@ if __name__ == '__main__':
 	systitle = quote_plus(title)
 	year = params.get('year', '')
 
+	premiered = ''
 	if 'meta' in params:
 		meta = jsloads(params['meta'])
 		imdb = meta.get('imdb', '')
@@ -31,7 +32,6 @@ if __name__ == '__main__':
 		episode = meta.get('episode', '')
 		tvshowtitle = meta.get('tvshowtitle', '')
 		systvshowtitle = quote_plus(tvshowtitle)
-		premiered = ''
 		if tvshowtitle: premiered = meta.get('premiered', '')
 	else:
 		imdb = params.get('imdb', '')
@@ -41,7 +41,6 @@ if __name__ == '__main__':
 		episode = params.get('episode', '')
 		tvshowtitle = params.get('tvshowtitle', '')
 		systvshowtitle = quote_plus(tvshowtitle)
-		premiered = ''
 		if tvshowtitle: premiered = params.get('premiered', '')
 
 	sysmeta = quote_plus(jsdumps(meta))
@@ -49,19 +48,19 @@ if __name__ == '__main__':
 	if xbmcaddon.Addon().getSetting("context.umbrella.rescrape2") == 'true':
 		rescrape_method = xbmcaddon.Addon().getSetting("context.umbrella.rescrape3")
 		if rescrape_method == '0':
-			path = 'PlayMedia(%s?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s&rescrape=true&select=1)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+			path = f'PlayMedia({plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}&rescrape=true&select=1)'
+
 		if rescrape_method == '1':
-			path = 'PlayMedia(%s?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s&rescrape=true&select=0)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+			path = f'PlayMedia({plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}&rescrape=true&select=0)'
+
 		if rescrape_method == '2':
-			path = 'PlayMedia(%s?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s&rescrape=true&all_providers=true&select=1)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+			path = f'PlayMedia({plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}&rescrape=true&all_providers=true&select=1)'
+
 		if rescrape_method == '3':
-			path = 'PlayMedia(%s?action=play_Item&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s&rescrape=true&all_providers=true&select=0)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+			path = f'PlayMedia({plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}&rescrape=true&all_providers=true&select=0)'
+
 	else:
-		path = 'PlayMedia(%s?action=rescrapeMenu&title=%s&year=%s&imdb=%s&tmdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s)' % (
-									plugin, systitle, year, imdb, tmdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+		path = f'PlayMedia({plugin}?action=rescrapeMenu&title={systitle}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta})'
+
 
 	xbmc.executebuiltin(path)

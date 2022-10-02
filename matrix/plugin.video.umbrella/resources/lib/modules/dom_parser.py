@@ -12,7 +12,11 @@ re_type = type(re.compile(r''))
 def parseDOM(html, name='', attrs=None, ret=False):
 	try:
 		if attrs:
-			attrs = dict((key, re.compile(value + ('$' if value else ''))) for key, value in iter(attrs.items()))
+			attrs = {
+				key: re.compile(value + ('$' if value else ''))
+				for key, value in iter(attrs.items())
+			}
+
 		results = parse_dom(html, name, attrs, ret)
 		if ret: results = [result.attrs[ret.lower()] for result in results]
 		else: results = [result.content for result in results]
@@ -24,11 +28,10 @@ def parseDOM(html, name='', attrs=None, ret=False):
 def __get_dom_content(html, name, match):
 	try:
 		if match.endswith('/>'): return ''
-		# override tag name with tag from match if possible
-		tag = re.match(r'<([^\s/>]+)', match)
-		if tag: name = tag.group(1)
-		start_str = '<%s' % name
-		end_str = "</%s" % name
+		if tag := re.match(r'<([^\s/>]+)', match):
+			name = tag[1]
+		start_str = f'<{name}'
+		end_str = f"</{name}"
 		# start/end tags without matching case cause issues
 		start = html.find(match)
 		end = html.find(end_str, start)
@@ -39,12 +42,20 @@ def __get_dom_content(html, name, match):
 			if tend != -1: end = tend
 			pos = html.find(start_str, pos + 1)
 
-		if start == -1 and end == -1: result = ''
-		elif start > -1 and end > -1: result = html[start + len(match):end]
-		elif end > -1: result = html[:end]
-		elif start > -1: result = html[start + len(match):]
-		else: result = ''
-		return result
+		if (
+			start == -1
+			and end == -1
+			or (start <= -1 or end <= -1)
+			and end <= -1
+			and start <= -1
+		):
+			return ''
+		elif start > -1 and end > -1:
+			return html[start + len(match):end]
+		elif end > -1:
+			return html[:end]
+		else:
+			return html[start + len(match):]
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
@@ -108,7 +119,7 @@ def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
 	try:
 		if attrs is None: attrs = {}
 		name = name.strip()
-		if isinstance(html, str) or isinstance(html, DomMatch): html = [html]
+		if isinstance(html, (str, DomMatch)): html = [html]
 		elif not isinstance(html, list): return ''
 
 		if not name: return ''
@@ -116,7 +127,7 @@ def parse_dom(html, name='', attrs=None, req=False, exclude_comments=False):
 
 		if req:
 			if not isinstance(req, list): req = [req]
-			req = set([key.lower() for key in req])
+			req = {key.lower() for key in req}
 
 		all_results = []
 		for item in html:

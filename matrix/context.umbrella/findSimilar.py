@@ -18,4 +18,6 @@ if __name__ == '__main__':
 	imdb = params.get('imdb', '')
 	action = 'tvshows' if 'tvshowtitle' in params else 'movies'
 
-	xbmc.executebuiltin('ActivateWindow(Videos,plugin://plugin.video.umbrella/?action=%s&url=https://api.trakt.tv/%s/%s/related,return)' % (action, 'shows' if 'tvshows' in action else 'movies', imdb))
+	xbmc.executebuiltin(
+		f"ActivateWindow(Videos,plugin://plugin.video.umbrella/?action={action}&url=https://api.trakt.tv/{'shows' if 'tvshows' in action else 'movies'}/{imdb}/related,return)"
+	)

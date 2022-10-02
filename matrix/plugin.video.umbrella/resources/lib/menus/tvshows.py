@@ -44,37 +44,60 @@ class TVshows:
 		self.imdb_link = 'https://www.imdb.com'
 		self.persons_link = 'https://www.imdb.com/search/name/?count=100&name='
 		self.personlist_link = 'https://www.imdb.com/search/name/?count=100&gender=male,female'
-		self.popular_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&release_date=,date[0]&sort=moviemeter,asc&count=%s&start=1' % self.page_limit
-		self.airing_link = 'https://www.imdb.com/search/title/?title_type=tv_episode&release_date=date[1],date[0]&sort=moviemeter,asc&count=%s&start=1' % self.page_limit
-		self.active_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=10,&production_status=active&sort=moviemeter,asc&count=%s&start=1' % self.page_limit
-		self.premiere_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&languages=en&num_votes=10,&release_date=date[60],date[0]&sort=release_date,desc&count=%s&start=1' % self.page_limit
-		self.rating_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=5000,&release_date=,date[0]&sort=user_rating,desc&count=%s&start=1' % self.page_limit
-		self.views_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&release_date=,date[0]&sort=num_votes,desc&count=%s&start=1' % self.page_limit
-		self.person_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&release_date=,date[0]&role=%s&sort=year,desc&count=%s&start=1' % ('%s', self.page_limit)
+		self.popular_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&release_date=,date[0]&sort=moviemeter,asc&count={self.page_limit}&start=1'
+
+		self.airing_link = f'https://www.imdb.com/search/title/?title_type=tv_episode&release_date=date[1],date[0]&sort=moviemeter,asc&count={self.page_limit}&start=1'
+
+		self.active_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=10,&production_status=active&sort=moviemeter,asc&count={self.page_limit}&start=1'
+
+		self.premiere_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&languages=en&num_votes=10,&release_date=date[60],date[0]&sort=release_date,desc&count={self.page_limit}&start=1'
+
+		self.rating_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=5000,&release_date=,date[0]&sort=user_rating,desc&count={self.page_limit}&start=1'
+
+		self.views_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&release_date=,date[0]&sort=num_votes,desc&count={self.page_limit}&start=1'
+
+		self.person_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&release_date=,date[0]&role=%s&sort=year,desc&count={self.page_limit}&start=1'
+
 		self.genre_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=3000,&release_date=,date[0]&genres=%s&sort=%s&count=%s&start=1' % ('%s', self.imdb_sort(type='imdbshows'), self.page_limit)
 		self.keyword_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&release_date=,date[0]&keywords=%s&sort=%s&count=%s&start=1' % ('%s', self.imdb_sort(type='imdbshows'), self.page_limit)
 		self.language_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&production_status=released&primary_language=%s&sort=%s&count=%s&start=1' % ('%s', self.imdb_sort(type='imdbshows'), self.page_limit)
 		self.certification_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&release_date=,date[0]&certificates=%s&sort=%s&count=%s&start=1' % ('%s', self.imdb_sort(type='imdbshows'), self.page_limit)
-		self.year_link = 'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&production_status=released&year=%s,%s&sort=moviemeter,asc&count=%s&start=1' % ('%s', '%s', self.page_limit)
-		self.imdbwatchlist_link = 'https://www.imdb.com/user/ur%s/watchlist?sort=date_added,desc' % self.imdb_user # only used to get users watchlist ID
+		self.year_link = f'https://www.imdb.com/search/title/?title_type=tv_series,tv_miniseries&num_votes=100,&production_status=released&year=%s,%s&sort=moviemeter,asc&count={self.page_limit}&start=1'
+
+		self.imdbwatchlist_link = f'https://www.imdb.com/user/ur{self.imdb_user}/watchlist?sort=date_added,desc'
+
 		self.imdbwatchlist2_link = 'https://www.imdb.com/list/%s/?view=detail&sort=%s&title_type=tvSeries,tvMiniSeries&start=1' % ('%s', self.imdb_sort(type='shows.watchlist'))
-		self.imdblists_link = 'https://www.imdb.com/user/ur%s/lists?tab=all&sort=mdfd&order=desc&filter=titles' % self.imdb_user
-		self.imdblist_link = 'https://www.imdb.com/list/%s/?view=detail&sort=%s&title_type=tvSeries,tvMiniSeries&start=1' % ('%s', self.imdb_sort())
-		self.imdbratings_link = 'https://www.imdb.com/user/ur%s/ratings?sort=your_rating,desc&mode=detail&start=1' % self.imdb_user # IMDb ratings does not take title_type so filter in imdb_list() function
-		self.anime_link = 'https://www.imdb.com/search/keyword/?keywords=anime&title_type=tvSeries,miniSeries&release_date=,date[0]&sort=moviemeter,asc&count=%s&start=1' % self.page_limit
+		self.imdblists_link = f'https://www.imdb.com/user/ur{self.imdb_user}/lists?tab=all&sort=mdfd&order=desc&filter=titles'
+
+		self.imdblist_link = f'https://www.imdb.com/list/%s/?view=detail&sort={self.imdb_sort()}&title_type=tvSeries,tvMiniSeries&start=1'
+
+		self.imdbratings_link = f'https://www.imdb.com/user/ur{self.imdb_user}/ratings?sort=your_rating,desc&mode=detail&start=1'
+
+		self.anime_link = f'https://www.imdb.com/search/keyword/?keywords=anime&title_type=tvSeries,miniSeries&release_date=,date[0]&sort=moviemeter,asc&count={self.page_limit}&start=1'
+
 
 		self.trakt_user = getSetting('trakt.user.name').strip()
 		self.traktCredentials = trakt.getTraktCredentialsInfo()
 		self.trakt_link = 'https://api.trakt.tv'
-		self.search_link = 'https://api.trakt.tv/search/show?limit=%s&page=1&query=' % self.search_page_limit
+		self.search_link = f'https://api.trakt.tv/search/show?limit={self.search_page_limit}&page=1&query='
+
 		self.traktlists_link = 'https://api.trakt.tv/users/me/lists'
 		self.traktlikedlists_link = 'https://api.trakt.tv/users/likes/lists?limit=1000000' # used by library import only
-		self.traktwatchlist_link = 'https://api.trakt.tv/users/me/watchlist/shows?limit=%s&page=1' % self.page_limit # this is now a dummy link for pagination to work
-		self.traktcollection_link = 'https://api.trakt.tv/users/me/collection/shows?limit=%s&page=1' % self.page_limit # this is now a dummy link for pagination to work
-		self.traktlist_link = 'https://api.trakt.tv/users/%s/lists/%s/items/shows?limit=%s&page=1' % ('%s', '%s', self.page_limit) # local pagination, limit and page used to advance, pulled from request
+		self.traktwatchlist_link = f'https://api.trakt.tv/users/me/watchlist/shows?limit={self.page_limit}&page=1'
+
+		self.traktcollection_link = f'https://api.trakt.tv/users/me/collection/shows?limit={self.page_limit}&page=1'
+
+		self.traktlist_link = f'https://api.trakt.tv/users/%s/lists/%s/items/shows?limit={self.page_limit}&page=1'
+
 		self.progress_link = 'https://api.trakt.tv/sync/watched/shows?extended=noseasons'
-		self.trakttrending_link = 'https://api.trakt.tv/shows/trending?page=1&limit=%s' % self.page_limit
-		self.traktpopular_link = 'https://api.trakt.tv/shows/popular?page=1&limit=%s' % self.page_limit
+		self.trakttrending_link = (
+			f'https://api.trakt.tv/shows/trending?page=1&limit={self.page_limit}'
+		)
+
+		self.traktpopular_link = (
+			f'https://api.trakt.tv/shows/popular?page=1&limit={self.page_limit}'
+		)
+
 		self.traktrecommendations_link = 'https://api.trakt.tv/recommendations/shows?limit=40'
 		self.trakt_popularLists_link = 'https://api.trakt.tv/lists/popular?limit=40&page=1' # use limit=40 due to filtering out Movie only lists
 		self.trakt_trendingLists_link = 'https://api.trakt.tv/lists/trending?limit=40&page=1'
@@ -90,10 +113,13 @@ class TVshows:
 		self.tmdb_toprated_link = 'https://api.themoviedb.org/3/tv/top_rated?api_key=%s&language=en-US&region=US&page=1'
 		self.tmdb_ontheair_link = 'https://api.themoviedb.org/3/tv/on_the_air?api_key=%s&language=en-US&region=US&page=1'
 		self.tmdb_airingtoday_link = 'https://api.themoviedb.org/3/tv/airing_today?api_key=%s&language=en-US&region=US&page=1'
-		self.tmdb_networks_link = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_networks=%s&sort_by=%s&page=1' % ('%s', '%s', self.tmdb_DiscoverSort())
-		self.tmdb_genre_link = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_genres=%s&include_null_first_air_dates=false&sort_by=%s&page=1' % ('%s', '%s', self.tmdb_DiscoverSort())
-		self.tmdb_year_link = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&language=en-US&include_null_first_air_dates=false&first_air_date_year=%s&sort_by=%s&page=1' % ('%s', '%s', self.tmdb_DiscoverSort())
-		self.mbdlist_list_items = 'https://mdblist.com/api/lists/%s/items?apikey=%s&limit=%s&page=1' % ('%s', mdblist.mdblist_api, self.page_limit)
+		self.tmdb_networks_link = f'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_networks=%s&sort_by={self.tmdb_DiscoverSort()}&page=1'
+
+		self.tmdb_genre_link = f'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_genres=%s&include_null_first_air_dates=false&sort_by={self.tmdb_DiscoverSort()}&page=1'
+
+		self.tmdb_year_link = f'https://api.themoviedb.org/3/discover/tv?api_key=%s&language=en-US&include_null_first_air_dates=false&first_air_date_year=%s&sort_by={self.tmdb_DiscoverSort()}&page=1'
+
+		self.mbdlist_list_items = f'https://mdblist.com/api/lists/%s/items?apikey={mdblist.mdblist_api}&limit={self.page_limit}&page=1'
 
 		# Ticket is in to add this feature but currently not available
 		# self.tmdb_certification_link = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&language=en-US&certification_country=US&certification=%s&sort_by=%s&page=1' % ('%s', '%s', self.tmdb_DiscoverSort())
@@ -101,7 +127,8 @@ class TVshows:
 	def get(self, url, idx=True, create_directory=True):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			try: u = urlparse(url).netloc.lower()
 			except: pass
@@ -123,10 +150,10 @@ class TVshows:
 				self.list = cache.get(self.trakt_list, 24, url, self.trakt_user)
 				if idx: self.worker()
 			elif u in self.imdb_link and ('/user/' in url or '/list/' in url):
-				isRatinglink=True if self.imdbratings_link in url else False
+				isRatinglink = self.imdbratings_link in url
 				self.list = cache.get(self.imdb_list, 0, url, isRatinglink)
 				if idx: self.worker()
-				# self.sort() # switched to request sorting for imdb
+						# self.sort() # switched to request sorting for imdb
 			elif u in self.imdb_link:
 				self.list = cache.get(self.imdb_list, 96, url)
 				if idx: self.worker()
@@ -156,14 +183,16 @@ class TVshows:
 	def getTMDb(self, url, create_directory=True):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			try: u = urlparse(url).netloc.lower()
 			except: pass
-			if u in self.tmdb_link and '/list/' in url:
-				self.list = cache.get(tmdb_indexer().tmdb_collections_list, 0, url)
-			elif u in self.tmdb_link and not '/list/' in url:
-				self.list = tmdb_indexer().tmdb_list(url) # caching handled in list indexer
+			if u in self.tmdb_link:
+				if '/list/' in url:
+					self.list = cache.get(tmdb_indexer().tmdb_collections_list, 0, url)
+				else:
+					self.list = tmdb_indexer().tmdb_list(url) # caching handled in list indexer
 			if self.list is None: self.list = []
 			if create_directory: self.tvshowDirectory(self.list)
 			return self.list
@@ -178,7 +207,8 @@ class TVshows:
 		from resources.lib.indexers import tvmaze
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			self.list = cache.get(tvmaze.TVshows().tvmaze_list, 168, url)
 			# if idx: self.worker() ## TVMaze has it's own full list builder.
@@ -195,7 +225,8 @@ class TVshows:
 	def getTraktPublicLists(self, url, create_directory=True):
 		self.list = []
 		try:
-			try: url = getattr(self, url + '_link')
+			try:
+				url = getattr(self, f'{url}_link')
 			except: pass
 			if '/popular' in url:
 				self.list = cache.get(self.trakt_public_list, 168, url)

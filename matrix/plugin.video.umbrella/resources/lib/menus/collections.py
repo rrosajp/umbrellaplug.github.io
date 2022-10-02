@@ -39,19 +39,53 @@ class Collections:
 		if self.tmdb_key == '' or self.tmdb_key is None: self.tmdb_key = 'bc96b19479c7db6c8ae805744d0bdfe2'
 		# self.user = str(self.imdb_user) + str(self.tmdb_key)
 		self.user = str(self.tmdb_key)
-		self.tmdb_link = 'https://api.themoviedb.org/4/list/%s?api_key=%s&sort_by=%s&page=1' % ('%s', self.tmdb_key, self.tmdb_sort())
-		self.tmdbCollection_link = 'https://api.themoviedb.org/3/collection/%s?api_key=%s&page=1' % ('%s', self.tmdb_key) # does not support request sorting
-		self.imdb_link = 'https://www.imdb.com/search/title?title=%s&title_type=%s&num_votes=1000,&countries=us&languages=en&sort=%s' % ('%s', '%s', self.imdb_sort())
-		self.tmdbCollectionsSearch_link = 'https://api.themoviedb.org/3/search/collection?api_key=%s&language=en-US&query=%s&page=1' % (self.tmdb_key, '%s')
+		self.tmdb_link = f'https://api.themoviedb.org/4/list/%s?api_key={self.tmdb_key}&sort_by={self.tmdb_sort()}&page=1'
+
+		self.tmdbCollection_link = f'https://api.themoviedb.org/3/collection/%s?api_key={self.tmdb_key}&page=1'
+
+		self.imdb_link = f'https://www.imdb.com/search/title?title=%s&title_type=%s&num_votes=1000,&countries=us&languages=en&sort={self.imdb_sort()}'
+
+		self.tmdbCollectionsSearch_link = f'https://api.themoviedb.org/3/search/collection?api_key={self.tmdb_key}&language=en-US&query=%s&page=1'
 
 	def collections_Navigator(self, lite=False):
 		self.addDirectoryItem('Movies', 'collections_Boxset', 'boxsets.png', 'DefaultVideoPlaylists.png')
-		self.addDirectoryItem('Based on a True Story', 'collections&url=%s' % quote_plus(self.tmdb_link % '7102955'), 'movies.png', 'DefaultVideoPlaylists.png')
-		self.addDirectoryItem('Boxing', 'collections&url=%s' % quote_plus(self.tmdb_link % '7102952'), 'boxing.png', 'DefaultVideoPlaylists.png')
+		self.addDirectoryItem(
+			'Based on a True Story',
+			f"collections&url={quote_plus(self.tmdb_link % '7102955')}",
+			'movies.png',
+			'DefaultVideoPlaylists.png',
+		)
+
+		self.addDirectoryItem(
+			'Boxing',
+			f"collections&url={quote_plus(self.tmdb_link % '7102952')}",
+			'boxing.png',
+			'DefaultVideoPlaylists.png',
+		)
+
 		self.addDirectoryItem('Martial Arts', 'collections_MartialArts', 'martial-arts.png', 'DefaultVideoPlaylists.png')
-		if control.getMenuEnabled('navi.xmascollections'): self.addDirectoryItem('Christmas Collections', 'collections&url=%s' % quote_plus(self.tmdb_link % '32770'), 'boxsets.png', 'DefaultVideoPlaylists.png')
-		self.addDirectoryItem('DC Comics', 'collections&url=%s' % quote_plus(self.tmdb_link % '32799'), 'dc-comics.png', 'DefaultVideoPlaylists.png')
-		self.addDirectoryItem('Marvel Comics', 'collections&url=%s' % quote_plus(self.tmdb_link % '32793'), 'marvel-comics.png', 'DefaultVideoPlaylists.png')
+		if control.getMenuEnabled('navi.xmascollections'):
+			self.addDirectoryItem(
+				'Christmas Collections',
+				f"collections&url={quote_plus(self.tmdb_link % '32770')}",
+				'boxsets.png',
+				'DefaultVideoPlaylists.png',
+			)
+
+		self.addDirectoryItem(
+			'DC Comics',
+			f"collections&url={quote_plus(self.tmdb_link % '32799')}",
+			'dc-comics.png',
+			'DefaultVideoPlaylists.png',
+		)
+
+		self.addDirectoryItem(
+			'Marvel Comics',
+			f"collections&url={quote_plus(self.tmdb_link % '32793')}",
+			'marvel-comics.png',
+			'DefaultVideoPlaylists.png',
+		)
+
 		self.addDirectoryItem('Superheroes', 'collections_Superhero', 'collectionsuperhero.png', 'DefaultVideoPlaylists.png')
 		self.addDirectoryItem('Kids Collections', 'collections_Kids', 'collectionkids.png', 'DefaultVideoPlaylists.png')
 		self.addDirectoryItem('Search TMDb Collections', 'collections_Search', 'search.png', 'DefaultAddonsSearch.png')

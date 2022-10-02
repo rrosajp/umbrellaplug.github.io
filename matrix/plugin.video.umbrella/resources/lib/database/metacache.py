@@ -23,7 +23,7 @@ def fetch(items, lang='en', user=''):
 	except:
 		from resources.lib.modules import log_utils
 		log_utils.error()
-	for i in range(0, len(items)):
+	for i in range(len(items)):
 		try:
 			try: # First lookup by TVDb and IMDb, since there are some incorrect shows on Trakt that have the same IMDb ID, but different TVDb IDs (eg: Gotham, Supergirl).
 				match = dbcur.execute('''SELECT * FROM meta WHERE (imdb=? AND tvdb=? AND lang=? AND user=? AND NOT imdb='' AND NOT tvdb='')''',
@@ -41,30 +41,30 @@ def fetch(items, lang='en', user=''):
 						t1 = int(match[6])
 					except: pass
 			if match:
-				update = (abs(t2 - t1) / 3600) >= 720 # 30 days? for airing shows this is to much.
+				update = abs(t2 - t1) >= 2592000
 				if update: continue
 				item = eval(match[5])
 
 				if item['mediatype'] == 'tvshow':
 					status = item['status'].lower()
-					if not any(value in status for value in ('ended', 'canceled')):
+					if all(value not in status for value in ('ended', 'canceled')):
 						from resources.lib.modules.cleandate import timestamp_from_string
-						next_episode_to_air = timestamp_from_string(item.get('next_episode_to_air', {}).get('air_date', ''))
-						if not next_episode_to_air:
-							update = (abs(t2 - t1) / 3600) >= 168 # 7 days for returning shows with None for next_episode_to_air
-							if update: continue
-						else:
-							if next_episode_to_air+(18*3600) <= t2 and (abs(t2 - t1) / 3600) >= 1: # refresh meta when next_episode_to_air is less than or equal to system date, every 1hr starting at 6pm till it flips
+						if next_episode_to_air := timestamp_from_string(
+							item.get('next_episode_to_air', {}).get('air_date', '')
+						):
+							if next_episode_to_air + (18 * 3600) <= t2 and abs(t2 - t1) >= 3600: # refresh meta when next_episode_to_air is less than or equal to system date, every 1hr starting at 6pm till it flips
 								from resources.lib.database.traktsync import cache_existing
 								from resources.lib.modules.trakt import syncTVShows
 								imdb = item.get('imdb', '')
 								indicators = cache_existing(syncTVShows)
-								watching = [i[0] for i in indicators if i[0] == imdb]
-								if watching:
+								if watching := [i[0] for i in indicators if i[0] == imdb]:
 									from resources.lib.modules.trakt import cachesyncSeasons
 									cachesyncSeasons(imdb) # refreshes only shows you are "watching"
 								continue
-				item = dict((k, v) for k, v in iter(item.items()) if v is not None and v != '')
+						else:
+							update = abs(t2 - t1) >= 604800
+							if update: continue
+				item = {k: v for k, v in iter(item.items()) if v is not None and v != ''}
 				items[i].update(item)
 				items[i].update({'metacache': True})
 		except:
@@ -123,5 +123,4 @@ def get_connection():
 	return dbcon
 
 def get_connection_cursor(dbcon):
-	dbcur = dbcon.cursor()
-	return dbcur
+	return dbcon.cursor()

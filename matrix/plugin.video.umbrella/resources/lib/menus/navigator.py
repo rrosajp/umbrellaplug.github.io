@@ -36,7 +36,13 @@ class Navigator:
 		if getMenuEnabled('navi.youtube'): self.addDirectoryItem('YouTube Videos', 'youtube', 'youtube.png', 'youtube.png')
 		self.addDirectoryItem(32010, 'tools_searchNavigator', 'search.png', 'DefaultAddonsSearch.png')
 		self.addDirectoryItem(32008, 'tools_toolNavigator', 'tools.png', 'tools.png')
-		downloads = True if getSetting('downloads') == 'true' and (len(control.listDir(getSetting('movie.download.path'))[0]) > 0 or len(control.listDir(getSetting('tv.download.path'))[0]) > 0) else False
+		downloads = getSetting('downloads') == 'true' and (
+			(
+				len(control.listDir(getSetting('movie.download.path'))[0]) > 0
+				or len(control.listDir(getSetting('tv.download.path'))[0]) > 0
+			)
+		)
+
 		if downloads: self.addDirectoryItem(32009, 'downloadNavigator', 'downloads.png', 'DefaultFolder.png')
 		if getMenuEnabled('navi.prem.services'): self.addDirectoryItem('Premium Services', 'premiumNavigator', 'premium.png', 'DefaultFolder.png')
 		if getMenuEnabled('navi.news'): self.addDirectoryItem(32013, 'tools_ShowNews', 'newsandinfo.png', 'DefaultAddonHelper.png', isFolder=False)
@@ -401,7 +407,7 @@ class Navigator:
 			if select == -1: return
 			content = items[select][1]
 			title = getLS(32059)
-			url = 'plugin://plugin.video.umbrella/?action=tools_addView&content=%s' % content
+			url = f'plugin://plugin.video.umbrella/?action=tools_addView&content={content}'
 			poster, banner, fanart = control.addonPoster(), control.addonBanner(), control.addonFanart()
 			item = control.item(label=title, offscreen=True)
 			item.setInfo(type='video', infoLabels = {'title': title})
@@ -555,14 +561,28 @@ class Navigator:
 		try:
 			from sys import argv # some functions like ActivateWindow() throw invalid handle less this is imported here.
 			if isinstance(name, int): name = getLS(name)
-			url = 'plugin://plugin.video.umbrella/?action=%s' % query if isAction else query
+			url = f'plugin://plugin.video.umbrella/?action={query}' if isAction else query
 			poster = control.joinPath(self.artPath, poster) if self.artPath else icon
 			if not icon.startswith('Default'): icon = control.joinPath(self.artPath, icon)
 			cm = []
 			queueMenu = getLS(32065)
 			if queue: cm.append((queueMenu, 'RunPlugin(plugin://plugin.video.umbrella/?action=playlist_QueueItem)'))
-			if context: cm.append((getLS(context[0]), 'RunPlugin(plugin://plugin.video.umbrella/?action=%s)' % context[1]))
-			if isSearch: cm.append(('Clear Search Phrase', 'RunPlugin(plugin://plugin.video.umbrella/?action=cache_clearSearchPhrase&source=%s&name=%s)' % (table, quote_plus(name))))
+			if context:
+				cm.append(
+					(
+						getLS(context[0]),
+						f'RunPlugin(plugin://plugin.video.umbrella/?action={context[1]})',
+					)
+				)
+
+			if isSearch:
+				cm.append(
+					(
+						'Clear Search Phrase',
+						f'RunPlugin(plugin://plugin.video.umbrella/?action=cache_clearSearchPhrase&source={table}&name={quote_plus(name)})',
+					)
+				)
+
 			cm.append(('[COLOR red]Umbrella Settings[/COLOR]', 'RunPlugin(plugin://plugin.video.umbrella/?action=tools_openSettings)'))
 			item = control.item(label=name, offscreen=True)
 			item.addContextMenuItems(cm)

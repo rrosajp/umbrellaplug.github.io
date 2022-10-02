@@ -42,11 +42,12 @@ if __name__ == '__main__':
 
 	sysmeta = quote_plus(jsdumps(meta))
 	if 'tvshowtitle' in meta:
-		url = '%s?action=play_Item&title=%s&year=%s&imdb=%s&tvdb=%s&season=%s&episode=%s&tvshowtitle=%s&premiered=%s&meta=%s' % (
-								plugin, systitle, year, imdb, tvdb, season, episode, systvshowtitle, premiered, sysmeta)
+		url = f'{plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&tvdb={tvdb}&season={season}&episode={episode}&tvshowtitle={systvshowtitle}&premiered={premiered}&meta={sysmeta}'
+
 	else:
-		url = '%s?action=play_Item&title=%s&year=%s&imdb=%s&meta=%s' % (plugin, systitle, year, imdb, sysmeta)
+		url = f'{plugin}?action=play_Item&title={systitle}&year={year}&imdb={imdb}&meta={sysmeta}'
+
 
 	sysurl = quote_plus(url)
-	path = 'RunPlugin(%s?action=alterSources&url=%s&meta=%s)' % (plugin, sysurl, sysmeta)
+	path = f'RunPlugin({plugin}?action=alterSources&url={sysurl}&meta={sysmeta})'
 	xbmc.executebuiltin(path)

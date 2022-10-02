@@ -133,8 +133,7 @@ class source:
 	def resolve(self, item_id):
 		try:
 			details = Premiumize().item_details(item_id)
-			url = details.get('link', '')
-			return url
+			return details.get('link', '')
 		except:
 			from resources.lib.modules import log_utils
 			log_utils.error('PM_CLOUD: ')
